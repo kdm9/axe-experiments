@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function
 from collections import Counter
 import screed
@@ -26,5 +27,11 @@ if __name__ == "__main__":
     for fn in sys.argv[1:]:
         ctr = assess_file(fn)
         samp = path.basename(fn).split('_')[0]
+        good = bad = 0
         for k, v in ctr.most_common():
-            print(samp, k, v, sep='\t')
+            #print(samp, k, v, sep='\t')
+            if k == samp:
+                good += v
+            else:
+                bad += v
+        print(samp, good, bad, sep='\t')
