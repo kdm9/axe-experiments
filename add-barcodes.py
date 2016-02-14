@@ -6,6 +6,7 @@ import numpy as np
 import random
 from sys import stderr, stdout
 import sys
+import json
 
 CLI = '''
 USAGE:
@@ -39,17 +40,18 @@ def read_axe_key(path):
 def samplefreq(samples, gamma_shape=2):
     # Sample frequencies are taken from a gamma distribution, and normalised to
     # sum to 1.
-    freqs = np.random.gamma(len(samples), gamma_shape)
+    freqs = np.random.gamma(gamma_shape, size=len(samples))
     freqs /= np.sum(freqs)
 
     return freqs.cumsum()
 
 
-def randexp(n):
-    '''Random number from the exponential distrbuiton (base 10) <= n.'''
+def mutrate(n, phredscore=25):
+    '''Random number from the exponential distrbuiton <= n.'''
+    error_rate = 10**(phredscore / 10.)
     x = n + 1
     while x > n:
-        x = int(np.random.exponental(np.log(10)))
+        x = int(np.random.exponential(1./np.log(error_rate)))
     return x
 
 
@@ -66,22 +68,26 @@ def mutate(seq, dist, alphabet='ACGT'):
     for i in range(dist):
         replacement = random.choice(alphabet)
         while seq[idx[i]] == replacement:
-            replacement = random.choice(nts)
+            replacement = random.choice(alphabet)
         seq[idx[i]] = replacement
     return "".join(seq)
 
 
 def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5):
-    idx = np.searchsorted(cumsum_prob, np.random.uniform())
+    r = np.random.uniform()
+    idx = np.searchsorted(cumsum_prob, r)
 
     sample = samples[idx]
 
     def read_str(read, barcode):
-        mismatch = randexp(int(max_mismatch * len(barcode)))
+        mismatch = mutrate(int(max_mismatch * len(barcode)))
+        bcd_seq = mutate(barcode, mismatch)
 
         sample_tag = json.dumps({'id': sample['id'],
                                  'barcodes': sample['bcd'],
                                  'mismatches': mismatch})
+
+        fake_qual = 'I'*len(barcode)
 
         return '@{}\t{}\n{}{}\n+\n{}{}'.format(
                 read.name, sample_tag,
@@ -92,7 +98,7 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5):
     r1, r2 = read_pair
     b1, b2 = sample['bcd']
 
-    return read_str(r1, b1) + read_str(r2, b2)
+    return read_str(r1, b1) + '\n' + read_str(r2, b2)
 
 
 def read_interleaved_or_paired(fq1, fq2=None):
@@ -123,7 +129,7 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2):
     for i, rp in enumerate(read_pairs):
         if i % 10000 == 0:
             print('\rProcessed {} reads'.format(i), file=stderr)
-        print(add_barcode_to_read(rp, sample_tag, cumsum_sample_freqs),
+        print(add_barcode_to_read(rp, samples, cumsum_sample_freqs),
               file=outfile)
     outfile.close()
 
@@ -131,7 +137,7 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2):
 if __name__ == '__main__':
     opts = docopt.docopt(CLI)
     add_barcodes(opts['FASTQ'],
-                 opts['FASTQ1'],
+                 opts['FASTQ2'],
                  opts['KEYFILE'],
                  opts['-o'],
                  float(opts['-G']))
