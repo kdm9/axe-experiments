@@ -16,7 +16,7 @@ RUN apt-get update && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get -yy autoremove && \
-    pip install screed==0.9 && \
+    pip install screed==0.9 docopt==0.6.2 numpy==1.10.2 && \
     cd /usr/local/src && \
     git clone https://github.com/kdmurray91/libqes && \
     cd libqes && \
