@@ -3,7 +3,6 @@ from __future__ import print_function
 import screed
 import docopt
 import numpy as np
-import random
 from sys import stderr, stdout
 import sys
 import json
@@ -13,6 +12,7 @@ USAGE:
     add-barcodes.py [options] KEYFILE FASTQ [FASTQ2]
 
 OPTIONS:
+    -s SEED         Output file [default: 1234]
     -o OUTPUT       Output file [default: stdout]
     -G GAMMA_SHAPE  Shape of gamma distribution, source of sample frequencies.
                     [default: 2]
@@ -62,13 +62,13 @@ def mutate(seq, dist, alphabet='ACGT'):
     if dist < 1:
         return seq
 
-    idx = list(range(len(seq)))
-    random.shuffle(idx)
+    idx = np.arange(len(seq))
+    np.random.shuffle(idx)
     seq = list(seq)
     for i in range(dist):
-        replacement = random.choice(alphabet)
+        replacement = seq[idx[i]]
         while seq[idx[i]] == replacement:
-            replacement = random.choice(alphabet)
+            replacement = alphabet[np.random.choice(len(alphabet))]
         seq[idx[i]] = replacement
     return "".join(seq)
 
@@ -80,14 +80,15 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5):
     sample = samples[idx]
 
     def read_str(read, barcode):
-        mismatch = mutrate(int(max_mismatch * len(barcode)))
+        fake_qual = read.quality[:len(barcode)]
+        avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(barcode))
+        mismatch = mutrate(int(max_mismatch * len(barcode)),
+                           phredscore=avg_qual)
         bcd_seq = mutate(barcode, mismatch)
 
         sample_tag = json.dumps({'id': sample['id'],
                                  'barcodes': sample['bcd'],
                                  'mismatches': mismatch})
-
-        fake_qual = 'I'*len(barcode)
 
         return '@{}\t{}\n{}{}\n+\n{}{}'.format(
                 read.name, sample_tag,
@@ -136,6 +137,7 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2):
 
 if __name__ == '__main__':
     opts = docopt.docopt(CLI)
+    np.random.seed(int(opts['-s']))
     add_barcodes(opts['FASTQ'],
                  opts['FASTQ2'],
                  opts['KEYFILE'],
