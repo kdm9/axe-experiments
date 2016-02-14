@@ -1,4 +1,27 @@
 GENOMES = athaliana ecoli scerevesiae
+NREADS = 1000000
+SEED = 198712
+BARCODE_SETS = gbs gbs_se nested
+
+.PHONY: barcode_reads
+prebarcode_reads: $(foreach gen,$(GENOMES),data/reads/$(gen)_barcode.fastq.gz)
+
+.PHONY: prebarcode_reads
+prebarcode_reads: $(foreach gen,$(GENOMES),data/reads/$(gen)_prebarcode.fastq.gz)
+
+data/reads/%.fastq.gz: data/genomes/athaliana.fa
+	mason_simulator --seed $(SEED) \
+		-n $(NREADS) \
+	       	-ir $^ \
+		-o data/tmp_$*_R1.fq \
+		-or data/tmp_$*_R2.fq
+	./add-barcodes.py -s $(SEED) \
+
+		data/tmp_$*_R1.fq \
+		data/tmp_$*_R2.fq | \
+		gzip -4 >$@
+	rm -f data/tmp_$*_R?.fq
+
 
 .PHONY: genomes
 genomes: $(foreach gen,$(GENOMES),data/genomes/$(gen).fa)
@@ -22,7 +45,6 @@ data/genomes/scerevesiae.fa: | dirs
 	tar xvf S288C_reference_genome_Current_Release.tgz
 	mv S288C_reference_genome*/S288C_reference_sequence*.fsa $@
 	rm -rf S288C_referenc*.tgz* S288C_reference_genome*
-
 
 dirs:
 	mkdir -p data/genomes
