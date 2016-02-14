@@ -7,6 +7,7 @@ from sys import stderr, stdout
 import sys
 import json
 
+
 CLI = '''
 USAGE:
     add-barcodes.py [options] KEYFILE FASTQ [FASTQ2]
@@ -81,10 +82,14 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5):
 
     def read_str(read, barcode):
         fake_qual = read.quality[:len(barcode)]
-        avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(barcode))
-        mismatch = mutrate(int(max_mismatch * len(barcode)),
-                           phredscore=avg_qual)
+        if len(barcode) > 0:
+            avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(barcode))
+            mismatch = mutrate(int(max_mismatch * len(barcode)),
+                               phredscore=avg_qual)
+        else:
+            mismatch = 0
         bcd_seq = mutate(barcode, mismatch)
+
 
         sample_tag = json.dumps({'id': sample['id'],
                                  'barcodes': sample['bcd'],
@@ -129,9 +134,11 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2):
     print("CLI is: '{}'".format(' '.join(sys.argv)), file=stderr)
     for i, rp in enumerate(read_pairs):
         if i % 10000 == 0:
-            print('\rProcessed {} reads'.format(i), file=stderr)
+            print('\rProcessed {} reads'.format(i), file=stderr, end='')
+            stderr.flush()
         print(add_barcode_to_read(rp, samples, cumsum_sample_freqs),
               file=outfile)
+    print('\rProcessed {} reads. Done!'.format(i + 1), file=stderr)
     outfile.close()
 
 
