@@ -34,11 +34,11 @@ rule reads:
         "   -ir {input.gen}"
         "   -o {params.tmpbase}_R1.fq"
         "   -or {params.tmpbase}_R2.fq &&"
-        "./add-barcodes.py -s {SEED}"
-	"   {input.barcode}"
+        "( ./add-barcodes.py -s {SEED}"
+        "   {input.barcode}"
         "   {params.tmpbase}_R1.fq"
         "   {params.tmpbase}_R2.fq |"
-        "  gzip -4 >{output} &&"
+        "  gzip -4 >{output} ) && "
         "rm -f {params.tmpbase}_R?.fq"
 
 
