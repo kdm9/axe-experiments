@@ -25,8 +25,8 @@ rule reads:
         gen="data/genomes/{genome}.fa",
         barcode="keyfiles/{barcode}.axe",
     output:
-        r1=temp("/dev/shm/{genome}_{barcode}-R1.prebcd.fastq"),
-        r2=temp("/dev/shm/{genome}_{barcode}-R2.prebcd.fastq"),
+        r1=temp("tmp/{genome}_{barcode}-R1.prebcd.fastq"),
+        r2=temp("tmp/{genome}_{barcode}-R2.prebcd.fastq"),
     log:
         "data/log/reads.{genome}_{barcode}.log"
     shell:
@@ -39,8 +39,8 @@ rule reads:
 rule bcdreads:
     input:
         barcode="keyfiles/{barcode}.axe",
-        r1="/dev/shm/{genome}_{barcode}-R1.prebcd.fastq",
-        r2="/dev/shm/{genome}_{barcode}-R2.prebcd.fastq",
+        r1="tmp/{genome}_{barcode}-R1.prebcd.fastq",
+        r2="tmp/{genome}_{barcode}-R2.prebcd.fastq",
     params:
         re_site=lambda w: '-r TGCAG' if 'gbs' in w.barcode else ''
     output:
