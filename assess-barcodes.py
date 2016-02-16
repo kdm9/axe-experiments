@@ -26,7 +26,7 @@ def assess_file(filename):
 if __name__ == "__main__":
     for fn in sys.argv[1:]:
         ctr = assess_file(fn)
-        samp = path.basename(fn).split('_')[0]
+        samp = path.basename(fn).strip().strip('_').split('_')[0]
         good = bad = 0
         for k, v in ctr.most_common():
             #print(samp, k, v, sep='\t')
