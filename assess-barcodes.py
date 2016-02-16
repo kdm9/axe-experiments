@@ -1,15 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 from collections import Counter
 import screed
 import json
 import sys
 from os import path
+
 try:
     from itertools import zip
 except ImportError:
     pass
-
 
 
 def assess_file(filename):
