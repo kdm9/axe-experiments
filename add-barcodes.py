@@ -7,6 +7,11 @@ from sys import stderr, stdout
 import sys
 import json
 
+try:
+    from itertools import zip
+except ImportError:
+    # Python 3's zip is python2's itertools.zip
+    pass
 
 CLI = '''
 USAGE:
