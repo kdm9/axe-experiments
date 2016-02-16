@@ -85,7 +85,11 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
 
     def read_str(read, barcode):
         fake_qual = read.quality[:len(barcode) + len(re_site)]
-        avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(fake_qual))
+        if fake_qual:
+            avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(fake_qual))
+        else:
+            avg_qual = ord(read.quality[0])-33
+
         if barcode:
             mismatch = mutrate(int(max_mismatch * len(barcode)),
                                phredscore=avg_qual)
@@ -107,9 +111,9 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
                                  'barcodes': sample['bcd'],
                                  'mismatches': mismatch})
 
-        return '@{}\t{}{}\n{}{}\n+\n{}{}'.format(
+        return '@{}\t{}\n{}{}{}\n+\n{}{}'.format(
                 read.name, sample_tag,
-                re_seq, bcd_seq, read.sequence,
+                bcd_seq, re_seq, read.sequence,
                 fake_qual, read.quality
         )
 
