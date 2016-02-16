@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 import screed
 import docopt
@@ -74,30 +74,40 @@ def mutate(seq, dist, alphabet='ACGT'):
     return "".join(seq)
 
 
-def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5):
+def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
+                        re_site='TGCAG', gibberish_prob=0.01):
     r = np.random.uniform()
     idx = np.searchsorted(cumsum_prob, r)
 
     sample = samples[idx]
 
     def read_str(read, barcode):
-        fake_qual = read.quality[:len(barcode)]
-        if len(barcode) > 0:
+        fake_qual = read.quality[:len(barcode) + len(re_site)]
+        if barcode:
             avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(barcode))
             mismatch = mutrate(int(max_mismatch * len(barcode)),
                                phredscore=avg_qual)
+        elif np.random.uniform() < gibberish_prob:
+            # Mutate barcode fully to create random gibberish as a barcode
+            mismatch = len(barcode)
         else:
             mismatch = 0
-        bcd_seq = mutate(barcode, mismatch)
 
+        if re_site:
+            mismatch = mutrate(len(re_site), phredscore=avg_qual)
+            re_seq = mutate(re_site, mismatch)
+        else:
+            re_seq = ''
+
+        bcd_seq = mutate(barcode, mismatch)
 
         sample_tag = json.dumps({'id': sample['id'],
                                  'barcodes': sample['bcd'],
                                  'mismatches': mismatch})
 
-        return '@{}\t{}\n{}{}\n+\n{}{}'.format(
+        return '@{}\t{}{}\n{}{}\n+\n{}{}'.format(
                 read.name, sample_tag,
-                bcd_seq,  read.sequence,
+                re_seq, bcd_seq, read.sequence,
                 fake_qual, read.quality
         )
 
