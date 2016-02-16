@@ -39,10 +39,13 @@ rule bcdreads:
         barcode="{barcode}.axe",
         r1="/dev/shm/{genome}_{barcode}-R1.prebcd.fastq",
         r2="/dev/shm/{genome}_{barcode}-R2.prebcd.fastq",
+    params:
+        re_site=lambda w: '-r TGCAG' if 'gbs' in w.barcode else ''
     output:
         "data/reads/{genome}_{barcode}.fastq.gz"
     shell:
         "./add-barcodes.py -s {SEED}"
+        "   {params.re_site}"
         "   {input.barcode}"
         "   {input.r1}"
         "   {input.r2} |"
