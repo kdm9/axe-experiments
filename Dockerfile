@@ -11,10 +11,13 @@ RUN apt-get update && \
                     python3-pip \
                     python3-docopt \
                     python3-numpy \
+                    wget \
                     && \
     apt-get clean && \
     apt-get autoclean && \
-    apt-get -yy autoremove
+    apt-get -yy autoremove && \
+    rm -rf /var/lib/apt/lists/*
+
 
 RUN pip3 install screed==0.9 \
                  snakemake==3.5.5
@@ -33,5 +36,5 @@ RUN cd /usr/local/src && \
     mv mason2-2.0.1-Linux-x86_64/bin/* /usr/local/bin && \
     rm -rf /usr/local/src/*
 
-ADD keyfiles /
+ADD keyfiles /keyfiles
 ADD Snakefile /
