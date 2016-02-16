@@ -1,0 +1,12 @@
+language: python
+
+sudo: required
+
+services:
+  - docker
+
+install:
+  - docker build --tag axe-expt .
+
+script:
+  - docker run -it axe-expt /bin/bash -c 'snakemake'
