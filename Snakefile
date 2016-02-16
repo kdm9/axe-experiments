@@ -86,6 +86,6 @@ rule yeast:
     shell:
         "rm -f S288C_referenc*.tgz* &&"
         "wget -nv http://downloads.yeastgenome.org/sequence/S288C_reference/genome_releases/S288C_reference_genome_Current_Release.tgz &&"
-        "tar xvf S288C_reference_genome_Current_Release.tgz &&"
-        "mv S288C_reference_genome*/S288C_reference_sequence*.fsa {output} &&" 
+        "tar xf S288C_reference_genome_Current_Release.tgz &&"
+        "mv S288C_reference_genome*/S288C_reference_sequence*.fsa {output} &&"
         "rm -rf S288C_referenc*.tgz* S288C_reference_genome*"
