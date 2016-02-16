@@ -24,7 +24,8 @@ RUN cd /usr/local/src && \
     cd libqes && \
     git checkout 0.1.21 && \
     cmake . && \
-    make && make test && make install
+    make && make test && make install && \
+    rm -rf /usr/local/src/*
 
 ADD http://packages.seqan.de/mason2/mason2-2.0.1-Linux-x86_64.tar.bz2 /usr/local/src
 RUN cd /usr/local/src && \
@@ -32,5 +33,5 @@ RUN cd /usr/local/src && \
     mv mason2-2.0.1-Linux-x86_64/bin/* /usr/local/bin && \
     rm -rf /usr/local/src/*
 
-ADD keyfiles /root/
-ADD Snakefile /root/
+ADD keyfiles /
+ADD Snakefile /
