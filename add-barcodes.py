@@ -14,6 +14,8 @@ USAGE:
 
 OPTIONS:
     -s SEED         Output file [default: 1234]
+    -r RE_SITE      Restriction enzyme site (inserted between barcode and read)
+                    [default: ]
     -o OUTPUT       Output file [default: stdout]
     -G GAMMA_SHAPE  Shape of gamma distribution, source of sample frequencies.
                     [default: 2]
@@ -87,9 +89,9 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
         if barcode:
             mismatch = mutrate(int(max_mismatch * len(barcode)),
                                phredscore=avg_qual)
-        elif np.random.uniform() < gibberish_prob:
-            # Mutate barcode fully to create random gibberish as a barcode
-            mismatch = len(barcode)
+            if np.random.uniform() < gibberish_prob:
+                # Mutate barcode fully to create random gibberish as a barcode
+                mismatch = len(barcode)
         else:
             mismatch = 0
 
@@ -129,8 +131,8 @@ def read_interleaved_or_paired(fq1, fq2=None):
             yield (r1, r2)
 
 
-def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2):
-
+def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
+                 re_site=''):
     read_pairs = read_interleaved_or_paired(fq1, fq2)
     samples = read_axe_key(axe_key)
 
@@ -146,7 +148,8 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2):
         if i % 10000 == 0:
             print('\rProcessed {} reads'.format(i), file=stderr, end='')
             stderr.flush()
-        print(add_barcode_to_read(rp, samples, cumsum_sample_freqs),
+        print(add_barcode_to_read(rp, samples, cumsum_sample_freqs,
+                                  re_site=re_site),
               file=outfile)
     print('\rProcessed {} reads. Done!'.format(i + 1), file=stderr)
     outfile.close()
@@ -159,4 +162,5 @@ if __name__ == '__main__':
                  opts['FASTQ2'],
                  opts['KEYFILE'],
                  opts['-o'],
-                 float(opts['-G']))
+                 float(opts['-G']),
+                 opts['-r'])
