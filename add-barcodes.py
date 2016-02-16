@@ -83,8 +83,8 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
 
     def read_str(read, barcode):
         fake_qual = read.quality[:len(barcode) + len(re_site)]
+        avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(fake_qual))
         if barcode:
-            avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(barcode))
             mismatch = mutrate(int(max_mismatch * len(barcode)),
                                phredscore=avg_qual)
         elif np.random.uniform() < gibberish_prob:
