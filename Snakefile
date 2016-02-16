@@ -27,12 +27,14 @@ rule reads:
     output:
         r1=temp("/dev/shm/{genome}_{barcode}-R1.prebcd.fastq"),
         r2=temp("/dev/shm/{genome}_{barcode}-R2.prebcd.fastq"),
+    log:
+        "data/log/reads.{genome}_{barcode}.log"
     shell:
         "mason_simulator --seed {SEED}"
         "   -n {NREADS}"
         "   -ir {input.gen}"
         "   -o {output.r1}"
-        "   -or {output.r2}"
+        "   -or {output.r2} >{log} 2>&1"
 
 rule bcdreads:
     input:
@@ -43,13 +45,15 @@ rule bcdreads:
         re_site=lambda w: '-r TGCAG' if 'gbs' in w.barcode else ''
     output:
         "data/reads/{genome}_{barcode}.fastq.gz"
+    log:
+        "data/log/bcdreads.{genome}_{barcode}.log"
     shell:
-        "./add-barcodes.py -s {SEED}"
+        "(./add-barcodes.py -s {SEED}"
         "   {params.re_site}"
         "   {input.barcode}"
         "   {input.r1}"
         "   {input.r2} |"
-        "  gzip -4 >{output}"
+        "  gzip -4 >{output}) 2>{log}"
 
 
 rule ath:
