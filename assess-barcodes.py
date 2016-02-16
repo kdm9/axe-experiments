@@ -24,14 +24,17 @@ def assess_file(filename):
     return ctr
 
 if __name__ == "__main__":
+    table = {}
     for fn in sys.argv[1:]:
-        ctr = assess_file(fn)
         samp = path.basename(fn).strip().strip('_').split('_')[0]
-        good = bad = 0
-        for k, v in ctr.most_common():
-            #print(samp, k, v, sep='\t')
-            if k == samp:
-                good += v
-            else:
-                bad += v
-        print(samp, good, bad, sep='\t')
+        ctr = assess_file(fn)
+        table[samp] = ctr
+
+    samples = list(table.keys())
+
+    print('\t' + '\t'.join(samples))
+    for r in samples:
+        print(r, end='')
+        for c in samples:
+            print('\t{}'.format(table[r][c]), end='')
+        print()
