@@ -23,7 +23,7 @@ rule clean:
 rule reads:
     input:
         gen="data/genomes/{genome}.fa",
-        barcode="{barcode}.axe",
+        barcode="keyfiles/{barcode}.axe",
     output:
         r1=temp("/dev/shm/{genome}_{barcode}-R1.prebcd.fastq"),
         r2=temp("/dev/shm/{genome}_{barcode}-R2.prebcd.fastq"),
@@ -38,7 +38,7 @@ rule reads:
 
 rule bcdreads:
     input:
-        barcode="{barcode}.axe",
+        barcode="keyfiles/{barcode}.axe",
         r1="/dev/shm/{genome}_{barcode}-R1.prebcd.fastq",
         r2="/dev/shm/{genome}_{barcode}-R2.prebcd.fastq",
     params:
