@@ -25,21 +25,28 @@ rule reads:
         gen="data/genomes/{genome}.fa",
         barcode="{barcode}.axe",
     output:
-        "data/reads/{genome}_{barcode}.fastq.gz"
-    params:
-        tmpbase=lambda w: "/dev/shm/tmp_{}_{}".format(w.genome, w.barcode)
+        r1=temp("/dev/shm/{genome}_{barcode}-R1.prebcd.fastq"),
+        r2=temp("/dev/shm/{genome}_{barcode}-R2.prebcd.fastq"),
     shell:
         "mason_simulator --seed {SEED}"
         "   -n {NREADS}"
         "   -ir {input.gen}"
-        "   -o {params.tmpbase}_R1.fq"
-        "   -or {params.tmpbase}_R2.fq &&"
-        "( ./add-barcodes.py -s {SEED}"
+        "   -o {output.r1}"
+        "   -or {output.r2}"
+
+rule bcdreads:
+    input:
+        barcode="{barcode}.axe",
+        r1="/dev/shm/{genome}_{barcode}-R1.prebcd.fastq",
+        r2="/dev/shm/{genome}_{barcode}-R2.prebcd.fastq",
+    output:
+        "data/reads/{genome}_{barcode}.fastq.gz"
+    shell:
+        "./add-barcodes.py -s {SEED}"
         "   {input.barcode}"
-        "   {params.tmpbase}_R1.fq"
-        "   {params.tmpbase}_R2.fq |"
-        "  gzip -4 >{output} ) && "
-        "rm -f {params.tmpbase}_R?.fq"
+        "   {input.r1}"
+        "   {input.r2} |"
+        "  gzip -4 >{output}"
 
 
 rule ath:
