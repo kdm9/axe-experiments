@@ -27,7 +27,7 @@ RUN cd /usr/local/src && \
     make && make test && make install && \
     rm -rf /usr/local/src/*
 
-ADD http://packages.seqan.de/mason2/mason2-2.0.1-Linux-x86_64.tar.bz2 /usr/local/src
+ADD http://packages.seqan.de/mason2/mason2-2.0.1-Linux-x86_64.tar.bz2 /usr/local/src/
 RUN cd /usr/local/src && \
     tar xvf mason2-2.0.1-Linux-x86_64.tar.bz2 && \
     mv mason2-2.0.1-Linux-x86_64/bin/* /usr/local/bin && \
