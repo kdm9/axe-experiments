@@ -77,7 +77,7 @@ def mutate(seq, dist, alphabet='ACGT'):
 
 
 def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
-                        re_site='TGCAG', gibberish_prob=0.01):
+                        re_site='', gibberish_prob=0.01):
     r = np.random.uniform()
     idx = np.searchsorted(cumsum_prob, r)
 
@@ -161,6 +161,6 @@ if __name__ == '__main__':
     add_barcodes(opts['FASTQ'],
                  opts['FASTQ2'],
                  opts['KEYFILE'],
-                 opts['-o'],
-                 float(opts['-G']),
-                 opts['-r'])
+                 outfile=opts['-o'],
+                 gamma_shape=float(opts['-G']),
+                 re_site=opts['-r'])
