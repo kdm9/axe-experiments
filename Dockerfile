@@ -36,5 +36,6 @@ RUN cd /usr/local/src && \
     mv mason2-2.0.1-Linux-x86_64/bin/* /usr/local/bin && \
     rm -rf /usr/local/src/*
 
-ADD keyfiles /keyfiles
-ADD Snakefile /
+RUN git clone https://github.com/kdmurray91/axe-experiments /experiments
+WORKDIR /experiments
+CMD snakemake
