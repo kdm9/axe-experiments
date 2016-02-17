@@ -82,7 +82,7 @@ def mutate(seq, dist, alphabet='ACGT'):
 
 
 def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
-                        re_site='', gibberish_prob=0.01):
+                        re_site='', gibberish_prob=0.):
     r = np.random.uniform()
     idx = np.searchsorted(cumsum_prob, r)
 
