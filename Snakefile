@@ -8,7 +8,7 @@ SEED = 198712
 BARCODE_SETS = [
     'gbs',
     'gbs-se',
-    'ucd-se',
+    '8bp-se',
 ]
 
 rule all:
