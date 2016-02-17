@@ -6,7 +6,7 @@ services:
   - docker
 
 install:
-  - docker build --tag axe-expt .
+  - docker build --tag axe-experiments .
 
 script:
-  - docker run -it axe-expt /bin/bash -c 'snakemake'
+  - docker run -it axe-experiments
