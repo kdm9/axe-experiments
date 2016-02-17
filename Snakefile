@@ -3,7 +3,8 @@ GENOMES = [
     'ecoli',
     'scerevesiae',
 ]
-NREADS = 1000000
+# FIXME: Increase this to something more reasonable for any publication version
+READS = 100000
 SEED = 198712
 BARCODE_SETS = [
     'gbs',
