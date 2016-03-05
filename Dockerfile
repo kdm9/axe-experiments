@@ -10,6 +10,7 @@ RUN apt-get update && \
                     python3-dev \
                     python3-pip \
                     python3-docopt \
+                    libtbb2 \
                     python3-numpy \
                     wget \
                     && \
@@ -22,18 +23,36 @@ RUN apt-get update && \
 RUN pip3 install screed==0.9 \
                  snakemake==3.5.5
 
-RUN cd /usr/local/src && \
-    git clone https://github.com/kdmurray91/libqes && \
+WORKDIR /usr/local/src
+RUN git clone https://github.com/kdmurray91/libqes && \
     cd libqes && \
     git checkout 0.1.21 && \
     cmake . && \
     make && make test && make install && \
     rm -rf /usr/local/src/*
 
+RUN git clone https://github.com/kdmurray91/axe && \
+    cd axe && \
+    git checkout 0.3.1 && \
+    cmake . && \
+    make && make test && make install && \
+    cd .. && \
+    rm -rf /usr/local/src/*
+
 ADD http://packages.seqan.de/mason2/mason2-2.0.1-Linux-x86_64.tar.bz2 /usr/local/src/
-RUN cd /usr/local/src && \
-    tar xvf mason2-2.0.1-Linux-x86_64.tar.bz2 && \
+RUN tar xvf mason2-2.0.1-Linux-x86_64.tar.bz2 && \
     mv mason2-2.0.1-Linux-x86_64/bin/* /usr/local/bin && \
+    rm -rf /usr/local/src/*
+
+ADD https://github.com/najoshi/sabre/archive/master.tar.gz /usr/local/src/sabre-master.tar.gz
+RUN tar xvf sabre-master.tar.gz && \
+    make -C sabre-master && \
+    mv sabre-master/sabre /usr/local/bin && \
+    rm -rf /usr/local/src/*
+
+ADD https://github.com/seqan/flexbar/releases/download/v2.5.0/flexbar_v2.5_linux64.tgz /usr/local/src/
+RUN tar xvf flexbar_*.tgz && \
+    mv flexbar_*_linux64/flexbar /usr/bin/flexbar && \
     rm -rf /usr/local/src/*
 
 RUN git clone https://github.com/kdmurray91/axe-experiments /experiments
