@@ -7,6 +7,7 @@ RUN apt-get update && \
                     zlib1g-dev \
                     cmake \
                     git \
+                    python \
                     python3-dev \
                     python3-pip \
                     python3-docopt \
@@ -24,14 +25,7 @@ RUN pip3 install screed==0.9 \
                  snakemake==3.5.5
 
 WORKDIR /usr/local/src
-RUN git clone https://github.com/kdmurray91/libqes && \
-    cd libqes && \
-    git checkout 0.1.21 && \
-    cmake . && \
-    make && make test && make install && \
-    rm -rf /usr/local/src/*
-
-RUN git clone https://github.com/kdmurray91/axe && \
+RUN git clone --recursive https://github.com/kdmurray91/axe && \
     cd axe && \
     git checkout 0.3.1 && \
     cmake . && \
@@ -39,9 +33,9 @@ RUN git clone https://github.com/kdmurray91/axe && \
     cd .. && \
     rm -rf /usr/local/src/*
 
-ADD http://packages.seqan.de/mason2/mason2-2.0.1-Linux-x86_64.tar.bz2 /usr/local/src/
-RUN tar xvf mason2-2.0.1-Linux-x86_64.tar.bz2 && \
-    mv mason2-2.0.1-Linux-x86_64/bin/* /usr/local/bin && \
+ADD http://packages.seqan.de/mason2/mason2-2.0.3-Linux-x86_64.tar.xz /usr/local/src/mason2.tar
+RUN tar xvf mason2.tar && \
+    mv mason2-*-Linux-x86_64/bin/* /usr/local/bin && \
     rm -rf /usr/local/src/*
 
 ADD https://github.com/najoshi/sabre/archive/master.tar.gz /usr/local/src/sabre-master.tar.gz
