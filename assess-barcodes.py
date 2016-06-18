@@ -5,6 +5,7 @@ import screed
 import json
 import sys
 from os import path
+import re
 
 try:
     from itertools import zip
@@ -26,7 +27,9 @@ def assess_file(filename):
 if __name__ == "__main__":
     table = {}
     for fn in sys.argv[1:]:
-        samp = path.basename(fn).strip().strip('_').split('_')[0]
+        samp = re.search(r'_([A-H][0-9]{1,2})_', path.basename(fn))
+        if samp is not None:
+            samp = samp.group(1)
         ctr = assess_file(fn)
         table[samp] = ctr
 

@@ -1,22 +1,23 @@
-from __future__ import print_function
-from sys import stderr
-import random
+from __future__ import print_function, division
+
+from collections import Counter, defaultdict
 import itertools
 from itertools import izip, cycle
-from collections import Counter
+import json
+from math import log
+import random
+from sys import stderr
 
+import screed
+
+mutrate = 1/1000
 barcodes = [
-    "TATTTTT",
-    "TAATA",
-    "GTAA",
-    "CCGGATAT",
-    "ATGCCT",
-    "TTCTG",
-    "CTAGG",
-    "CCTAG",
-    "AGGAT",
-    "CGCGGAGA",
+    "AAAA",
+    "CCCC",
+    "GGGG",
+    "TTTT",
 ]
+
 
 def mut(seq, dist):
     idx = list(range(len(seq)))
@@ -30,35 +31,31 @@ def mut(seq, dist):
         seq[idx[i]] = rep
     return "".join(seq)
 
+
 def barcode_chain():
     for barcode in itertools.cycle(barcodes):
-        if random.random() < 0.0005:
-            yield (barcode,  mut(barcode, 2))
-        elif random.random() < 0.01:
-            yield ("None",  "")
-        elif random.random() < 0.05:
-            yield (barcode, mut(barcode, 1))
-        else:
-            yield (barcode, barcode)
+        mm = int(log(random.random()) / log(mutrate))
+        yield (barcode, mut(barcode, mm), mm)
 
-def fqitr(fp):
-    """Fastq iterator. Whoop for python golf!"""
-    for h, s, _, q in izip(fp, fp, fp, fp):
-        yield (h.strip(), s.strip(), q.strip())
 
 def add_barcodes(fname):
-    ifh = open(fname)
+    barcode_mm = defaultdict(Counter)
     bcd_ctr = Counter()
     bcd_chain = barcode_chain()
-    for hdr, seq, qual in fqitr(ifh):
-        bcd, mutbcd = next(bcd_chain)
-        bcd_ctr[bcd] += 1
-        print(hdr)
-        print(mutbcd + seq)
-        print("+")
-        print(mutbcd + qual)
+    with screed.open(fname) as reads:
+        for read in reads:
+            bcd, mutbcd, mismatch = next(bcd_chain)
+            bcd_ctr[bcd] += 1
+            barcode_mm[bcd][mismatch] += 1
+            print("@", read.name, " ", mismatch)
+            print(mutbcd + read.sequence)
+            print("+")
+            print("I" * len(mutbcd) + read.quality)
     for bcd, cnt in bcd_ctr.items():
         print(bcd, "\t", cnt, file=stderr)
+    with open('barcode_stats.json', 'w') as fh:
+        json.dump(barcode_mm, fh)
+
 
 if __name__ == "__main__":
     import sys
