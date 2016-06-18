@@ -27,13 +27,14 @@ def assess_file(filename):
 if __name__ == "__main__":
     table = {}
     for fn in sys.argv[1:]:
-        samp = re.search(r'_([A-H][0-9]{1,2})_', path.basename(fn))
-        if samp is not None:
-            samp = samp.group(1)
+        samp = re.search(r'([ABCD])_', path.basename(fn))
+        if samp is None:
+            continue
+        samp = samp.group(1)
         ctr = assess_file(fn)
         table[samp] = ctr
 
-    samples = list(table.keys())
+    samples = list(sorted(table.keys()))
 
     print('\t' + '\t'.join(samples))
     for r in samples:
