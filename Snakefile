@@ -1,7 +1,4 @@
 GENOMES = [
-    #'athaliana',
-    #'ecoli',
-    #'scerevesiae',
     'random',
 ]
 # FIXME: Increase this to something more reasonable for any publication version
@@ -11,7 +8,6 @@ READLEN = 20
 BC_DM = [
     ('4bp-se', 'axe'),
     ('nested-se', 'axe'),
-#    ('4bp-se', 'flexbar'),
     ('4bp-pe', 'axe'),
     ('nested-pe', 'axe'),
 ]
