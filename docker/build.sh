@@ -5,6 +5,8 @@ AXE_VERSION=0.3.2
 MASON_VERSION=2.0.5
 SEQAN_VERSION=2.1.1
 FLEXBAR_VERSION=2.7.0
+SNAKEMAKE_VERSION=3.8.2
+SCREED_VERSION=0.9
 
 ################################################################################
 #                                     APT                                      #
@@ -24,14 +26,22 @@ apt-get -yy install build-essential \
                 wget                \
                 xz-utils            \
                 zlib1g-dev
-apt-get clean
-apt-get autoclean
-apt-get -yy autoremove
-rm -rf /var/lib/apt/lists/*
 
-pip3 install screed==0.9 snakemake==3.8.2
+################################################################################
+#                               Python Packages                                #
+################################################################################
 
-cd /usr/local/src
+
+pip3 install                  \
+    screed==${SCREED_VERSION} \
+    snakemake==${SNAKEMAKE_VERSION}
+
+
+################################################################################
+#                                 Source pkgs                                  #
+################################################################################
+
+pushd /usr/local/src
 
 
 ################################################################################
@@ -78,3 +88,14 @@ cmake .
 make && mv flexbar /usr/local/bin/flexbar
 popd
 rm -rf /usr/local/src/*
+
+
+################################################################################
+#                                   Cleanup                                    #
+################################################################################
+
+apt-get clean
+apt-get autoclean
+apt-get -yy autoremove
+rm -rf /var/lib/apt/lists/*
+popd
