@@ -3,5 +3,5 @@ MAINTAINER Kevin Murray
 
 ADD . /experiments
 WORKDIR /experiments
-RUN /experiments/docker/build.sh
+RUN bash /experiments/docker/build.sh
 CMD snakemake
