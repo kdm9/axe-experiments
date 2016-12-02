@@ -63,34 +63,6 @@ rule axe:
         '   -I {params.outdir}'
         '    >{log} 2>&1'
 
-rule sabre_dm:
-    input:
-        kf='keyfiles/{barcode}.sabre',
-        r1="data/reads/{genome}_{barcode}_R1.fastq.gz",
-        r2="data/reads/{genome}_{barcode}_R2.fastq.gz",
-    output:
-        ['data/demuxed.sabre/{{genome}}_{{barcode}}/{s}_il.fastq'.format(s=s)
-            for s in ['A', 'B', 'C', 'D', 'unknown']]
-    params:
-        outdir='data/demuxed.flexbar',
-        combo=lambda w: 'se' if 'se' in w.barcode else '',
-    log:
-        'data/log/flexbar_{genome}_{barcode}.log'
-    shell:
-        '(p=$(pwd); '
-        't=$(mktemp -d); '
-        'pushd $t; '
-        '~/prog/bio/forks/sabre/sabre pe '
-        '   -f $p/{input.r1}'
-        '   -r $p/{input.r2}'
-        '   -b $p/{input.kf}'
-        '   -u unknown_R1.fastq'
-        '   -w unknown_R2.fastq'
-        '&& rename "s/^/{wildcards.genome}_{wildcards.barcode}/" *.fastq'
-        '&& gzip *.fastq'
-        '&& mv *.fastq.gz $p/{params.outdir} )'
-        '    >{log} 2>&1'
-
 rule flexbar_dm:
     input:
         kf='keyfiles/{barcode}.flexbar',
