@@ -151,37 +151,6 @@ rule reads:
         "   -or {output.r2} >{log} 2>&1"
 
 
-rule ath:
-    output:
-        "data/genomes/athaliana.fa"
-    shell:
-        "wget -c ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chr1.fas "
-        "        ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chr2.fas "
-        "        ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chr3.fas "
-        "        ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chr4.fas "
-        "        ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chr5.fas "
-        "        ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chrC.fas "
-        "        ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/TAIR10_chrM.fas && "
-        "cat TAIR10_chr*.fas >{output} && "
-        "rm -f TAIR10_chr*.fas*"
-
-rule ecoli:
-    output:
-        "data/genomes/ecoli.fa"
-    shell:
-        "wget -c ftp://ftp.ensemblgenomes.org/pub/bacteria/release-30/fasta/bacteria_9_collection/escherichia_coli_str_k_12_substr_dh10b/dna/Escherichia_coli_str_k_12_substr_dh10b.GCA_000019425.1.30.dna.genome.fa.gz &&"
-        "zcat Escherichia_coli_*.fa.gz >{output} &&"
-        "rm -f Escherichia_coli_*.fa.gz*"
-
-rule yeast:
-    output:
-        "data/genomes/scerevesiae.fa"
-    shell:
-        "wget -c http://downloads.yeastgenome.org/sequence/S288C_reference/genome_releases/S288C_reference_genome_Current_Release.tgz &&"
-        "tar xf S288C_reference_genome_Current_Release.tgz &&"
-        "mv S288C_reference_genome*/S288C_reference_sequence*.fsa {output} &&"
-        "rm -rf S288C_referenc*.tgz* S288C_reference_genome*"
-
 rule randgenome:
     output:
         "data/genomes/random.fa"
