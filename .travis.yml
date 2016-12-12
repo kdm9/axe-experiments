@@ -6,7 +6,7 @@ services:
   - docker
 
 install:
-  - docker build --tag axe-experiments .
+  - docker build --tag axe-experiments docker
 
 script:
-  - docker run -it axe-experiments
+  - docker run -v $PWD:/experiments -it axe-experiments snakemake
