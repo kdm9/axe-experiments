@@ -19,6 +19,7 @@ USAGE:
 
 OPTIONS:
     -s SEED         Output file [default: 1234]
+    -S              Single end mode (only output R1) [default: False]
     -r RE_SITE      Restriction enzyme site (inserted between barcode and read)
                     [default: ]
     -o OUTPUT       Output file [default: stdout]
@@ -82,7 +83,7 @@ def mutate(seq, dist, alphabet='ACGT'):
 
 
 def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
-                        re_site='', gibberish_prob=0.):
+                        re_site='', gibberish_prob=0., single_only=False):
     r = np.random.uniform()
     idx = np.searchsorted(cumsum_prob, r)
 
@@ -125,7 +126,10 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
     r1, r2 = read_pair
     b1, b2 = sample['bcd']
 
-    return read_str(r1, b1) + '\n' + read_str(r2, b2)
+    if single_only:
+        return read_str(r1, b1)
+    else:
+        return read_str(r1, b1) + '\n' + read_str(r2, b2)
 
 
 def read_interleaved_or_paired(fq1, fq2=None):
@@ -141,7 +145,7 @@ def read_interleaved_or_paired(fq1, fq2=None):
 
 
 def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
-                 re_site=''):
+                 re_site='', single_only=False):
     read_pairs = read_interleaved_or_paired(fq1, fq2)
     samples = read_axe_key(axe_key)
 
@@ -158,7 +162,7 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
             print('\rProcessed {} reads'.format(i), file=stderr, end='')
             stderr.flush()
         print(add_barcode_to_read(rp, samples, cumsum_sample_freqs,
-                                  re_site=re_site),
+                                  re_site=re_site, single_only=single_only),
               file=outfile)
     print('\rProcessed {} reads. Done!'.format(i + 1), file=stderr)
     outfile.close()
@@ -172,4 +176,5 @@ if __name__ == '__main__':
                  opts['KEYFILE'],
                  outfile=opts['-o'],
                  gamma_shape=float(opts['-G']),
-                 re_site=opts['-r'])
+                 re_site=opts['-r'],
+                 single_only=opts['-s'])
