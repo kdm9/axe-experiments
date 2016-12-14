@@ -34,9 +34,9 @@ apt-get -yy install \
 
 
 pip3 install                        \
+    pyyaml                          \
     screed==${SCREED_VERSION}       \
     snakemake==${SNAKEMAKE_VERSION} \
-    yaml                            \
 
 
 ################################################################################
