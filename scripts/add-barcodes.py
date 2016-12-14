@@ -19,7 +19,7 @@ USAGE:
 
 OPTIONS:
     -s SEED         Output file [default: 1234]
-    -S              Single end mode (only output R1) [default: False]
+    -S              Single end mode (only output R1)
     -r RE_SITE      Restriction enzyme site (inserted between barcode and read)
                     [default: ]
     -o OUTPUT       Output file [default: stdout]
@@ -177,4 +177,4 @@ if __name__ == '__main__':
                  outfile=opts['-o'],
                  gamma_shape=float(opts['-G']),
                  re_site=opts['-r'],
-                 single_only=opts['-s'])
+                 single_only=opts['-S'])

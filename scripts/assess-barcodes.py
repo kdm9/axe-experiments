@@ -27,7 +27,7 @@ def assess_file(filename):
 if __name__ == "__main__":
     table = {}
     for fn in sys.argv[1:]:
-        samp = re.search(r'([ABCD])_', path.basename(fn))
+        samp = re.search('([ABCD]).fastq', path.basename(fn))
         if samp is None:
             continue
         samp = samp.group(1)
