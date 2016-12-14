@@ -14,27 +14,29 @@ SCREED_VERSION=0.9
 
 apt-get update
 apt-get -yy upgrade
-apt-get -yy install build-essential \
-                cmake               \
-                libbz2-dev          \
-                libtbb-dev          \
-                python              \
-                python3-dev         \
-                python3-docopt      \
-                python3-numpy       \
-                python3-pip         \
-                wget                \
-                xz-utils            \
-                zlib1g-dev
+apt-get -yy install \
+    build-essential \
+    cmake           \
+    libbz2-dev      \
+    libtbb-dev      \
+    python          \
+    python3-dev     \
+    python3-docopt  \
+    python3-numpy   \
+    python3-pip     \
+    wget            \
+    xz-utils        \
+    zlib1g-dev      \
 
 ################################################################################
 #                               Python Packages                                #
 ################################################################################
 
 
-pip3 install                  \
-    screed==${SCREED_VERSION} \
-    snakemake==${SNAKEMAKE_VERSION}
+pip3 install                        \
+    screed==${SCREED_VERSION}       \
+    snakemake==${SNAKEMAKE_VERSION} \
+    yaml                            \
 
 
 ################################################################################
@@ -48,8 +50,8 @@ pushd /usr/local/src
 #                                     AXE                                      #
 ################################################################################
 
-wget -O axe-${AXE_VERSION}.tar.gz \
-    https://github.com/kdmurray91/axe/archive/${AXE_VERSION}.tar.gz
+wget -O axe-${AXE_VERSION}.tar.gz                                   \
+    https://github.com/kdmurray91/axe/archive/${AXE_VERSION}.tar.gz \
 
 tar xvf axe-${AXE_VERSION}.tar.gz
 
@@ -77,8 +79,9 @@ rm -rf /usr/local/src/*
 wget https://github.com/seqan/seqan/releases/download/seqan-v${SEQAN_VERSION}/seqan-library-${SEQAN_VERSION}.tar.xz
 tar xvf seqan-library*.tar*
 
-wget -O flexbar-${FLEXBAR_VERSION}.tar.gz \
-    https://github.com/seqan/flexbar/archive/v${FLEXBAR_VERSION}.tar.gz
+wget -O flexbar-${FLEXBAR_VERSION}.tar.gz                               \
+    https://github.com/seqan/flexbar/archive/v${FLEXBAR_VERSION}.tar.gz \
+
 tar xvf flexbar-${FLEXBAR_VERSION}.tar*
 
 mv seqan-library*/include flexbar-${FLEXBAR_VERSION}/
