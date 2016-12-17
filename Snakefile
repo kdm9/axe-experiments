@@ -1,44 +1,51 @@
-GENOMES = [
-    'random',
-]
+import simhelpers
+import random
+
+random.seed(3301)
+NREPS = 2
+SEEDS = random.sample(range(10000), NREPS)
 # FIXME: Increase this to something more reasonable for any publication version
-NREADS = 10000
-SEED = 198712
-READLEN = 20
+NREADS = 100000
+KEEP_READS = False
+READLEN = 101 # for benchmarking purposes
 BC_DM = [
     ('4bp-se', 'axe'),
     ('nested-se', 'axe'),
+    ('gbs-se', 'axe'),
     ('4bp-pe', 'axe'),
     ('nested-pe', 'axe'),
+    ('4bp-se', 'flexbar'),
+    ('nested-se', 'flexbar'),
+    ('gbs-se', 'flexbar'),
+    ('bvzlab-pst1-gbs-pe', 'axe'),
 ]
 BARCODE_SETS = list(set([bd[0] for bd in BC_DM]))
+BARCODE_NAMES = {bcd: simhelpers.keyfile_names("keyfiles/{}.axe".format(bcd))
+                 for bcd in BARCODE_SETS}
 
 shell.executable("/bin/bash")
 shell.prefix("set -euo pipefail; ")
 
 rule all:
     input:
-        expand("data/reads/{gen}_{barcode}.fastq.gz", gen=GENOMES,
-               barcode=BARCODE_SETS),
-        ["data/demuxed.{dm}/{gen}_{bc}/unknown_il.fastq".format(dm=dm, bc=bc, gen=gen)
+        expand("data/reads/{seed}_{barcode}.fastq.gz", seed=SEEDS,
+               barcode=BARCODE_SETS) if KEEP_READS else [],
+        ["data/assessments/{seed}_{bc}_{dm}.tab".format(dm=dm, bc=bc, seed=seed)
             for bc, dm in BC_DM
-            for gen in GENOMES],
-        ["data/assessments/{gen}_{bc}_{dm}.tab".format(dm=dm, bc=bc, gen=gen)
-            for bc, dm in BC_DM
-            for gen in GENOMES],
+            for seed in SEEDS],
 
 
 rule clean:
     shell:
-        'rm -rf data/reads'
+        'rm -rf data'
 
 
 rule assess:
     input:
-        expand('data/demuxed.{{demuxer}}/{{genome}}_{{barcode}}/{s}_il.fastq',
-               s=['A', 'B', 'C', 'D', 'unknown'])
+        stats="data/bcd_stats/{seed}_{barcode}.json",
+        reads=dynamic('data/demuxed.{demuxer}/{seed}_{barcode}/{sample}.fastq'),
     output:
-        'data/assessments/{genome}_{barcode}_{demuxer}.tab'
+        'data/assessments/{seed}_{barcode}_{demuxer}.tab'
     shell:
         "scripts/assess-barcodes.py {input} > {output}"
 
@@ -46,76 +53,94 @@ rule assess:
 rule axe:
     input:
         kf='keyfiles/{barcode}.axe',
-        reads="data/reads/{genome}_{barcode}.fastq.gz",
+        reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        ['data/demuxed.axe/{{genome}}_{{barcode}}/{s}_il.fastq'.format(s=s)
-            for s in ['A', 'B', 'C', 'D', 'unknown']]
+        dynamic('data/demuxed.axe/{seed}_{barcode}/{sample}.fastq')
     params:
-        outdir=lambda w: 'data/demuxed.axe/{}_{}/'.format(w.genome, w.barcode),
-        combo=lambda w: '-c' if 'pe' in w.barcode else ''
+        outdir=lambda w: 'data/demuxed.axe/{}_{}/'.format(w.seed, w.barcode),
+        combo=lambda w: '-c' if 'pe' in w.barcode else '',
+        inmode=lambda w: '-f' if 'se' in w.barcode else '-i',
+        outmode=lambda w: '-F' if 'se' in w.barcode else '-I',
     log:
-        'data/log/axe_{genome}_{barcode}.log'
+        'data/log/axe/{seed}_{barcode}.log'
+    benchmark:
+        'data/benchmarks/axe/{seed}_{barcode}.txt'
     shell:
-        'axe-demux'
+        '(axe-demux'
         '   {params.combo}'
         '   -b {input.kf}'
-        '   -i {input.reads}'
-        '   -I {params.outdir}'
-        '    >{log} 2>&1'
+        '   {params.inmode} {input.reads}'
+        '   {params.outmode} {params.outdir}'
+        ' && pushd {params.outdir}'
+        " && rename 's/_(il|R1|R2)//' *.fastq"
+        ' && popd'
+        ") >{log} 2>&1"
 
 rule flexbar_dm:
     input:
-        kf='keyfiles/{barcode}.flexbar',
-        reads="data/reads/{genome}_{barcode}.fastq.gz",
+        kf='keyfiles/{barcode}_flexbar.fasta',
+        reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        ['data/demuxed.flexbar/{{genome}}_{{barcode}}/{s}_il.fastq'.format(s=s)
-            for s in ['A', 'B', 'C', 'D', 'unknown']]
+        dynamic('data/demuxed.flexbar/{seed}_{barcode}/{sample}.fastq')
+        #lambda wc: expand('data/demuxed.flexbar/{{seed}}_{{barcode}}/{s}.fastq',
+        #                  s=BARCODE_NAMES[wc.barcode])
     params:
-        outdir=lambda w: 'data/demuxed.flexbar/{}_{}'.format(w.genome, w.barcode),
+        outdir=lambda w: 'data/demuxed.flexbar/{}_{}/'.format(w.seed, w.barcode),
         combo=lambda w: '-c' if 'se' in w.barcode else '',
     log:
-        'data/log/flexbar_{genome}_{barcode}.log'
+        'data/log/flexbar/{seed}_{barcode}.log'
+    benchmark:
+        'data/benchmarks/flexbar/{seed}_{barcode}.txt'
     shell:
         '(flexbar'
-        '   -be LEFT'
+        '   -be LEFT'  # 5' barcodes
+        '   -bu'
         '   -b {input.kf}'
         '   -r {input.reads}'
         '   -t {params.outdir} &&'
-        'rename "s/_barcode//" {params.outdir}*.fastq )'
-        '    >{log} 2>&1'
+        " pushd {params.outdir} &&"
+        " ls -lahF . &&"
+        " rename 's/^.*_barcode_([\w]+.fastq)$/$1/' *.fastq &&"
+        " mv unassigned.fastq unkown.fastq &&"
+        " popd"
+        ") >{log} 2>&1"
 
 
 rule bcdreads:
     input:
         barcode="keyfiles/{barcode}.axe",
-        r1="tmp/{genome}_{barcode}-R1.prebcd.fastq",
-        r2="tmp/{genome}_{barcode}-R2.prebcd.fastq",
+        r1="data/tmp/{seed}_{barcode}-R1.prebcd.fastq",
+        r2="data/tmp/{seed}_{barcode}-R2.prebcd.fastq",
     params:
-        re_site=lambda w: '-r TGCAG' if 'gbs' in w.barcode else ''
+        re_site=lambda w: '-r TGCAG' if 'gbs' in w.barcode else '',
+        singleend=lambda w: '-S' if 'se' in w.barcode else '',
     output:
-        "data/reads/{genome}_{barcode}.fastq.gz"
+        reads="data/reads/{seed}_{barcode}.fastq.gz",
+        stats="data/bcd_stats/{seed}_{barcode}.json",
     log:
-        "data/log/bcdreads.{genome}_{barcode}.log"
+        "data/log/bcdreads/{seed}_{barcode}.log"
     shell:
-        "(scripts/add-barcodes.py -s {SEED}"
+        "(scripts/add-barcodes.py -s {wildcards.seed}"
         "   {params.re_site}"
+        "   {params.singleend}"
+        "   -y {output.stats}"
         "   {input.barcode}"
         "   {input.r1}"
         "   {input.r2} |"
-        "  gzip -4 >{output}) 2>{log}"
+        "  gzip -4 >{output.reads}) 2>{log}"
 
 
 rule reads:
     input:
-        gen="data/genomes/{genome}.fa",
+        gen="data/genomes/{seed}.fa",
         barcode="keyfiles/{barcode}.axe",
     output:
-        r1=temp("tmp/{genome}_{barcode}-R1.prebcd.fastq"),
-        r2=temp("tmp/{genome}_{barcode}-R2.prebcd.fastq"),
+        r1=temp("data/tmp/{seed}_{barcode}-R1.prebcd.fastq"),
+        r2=temp("data/tmp/{seed}_{barcode}-R2.prebcd.fastq"),
     log:
-        "data/log/reads.{genome}_{barcode}.log"
+        "data/log/reads/{seed}_{barcode}.log"
     shell:
-        "mason_simulator --seed {SEED}"
+        "mason_simulator --seed {wildcards.seed}"
         "   --illumina-read-length {READLEN}"
         "   -n {NREADS}"
         "   -ir {input.gen}"
@@ -125,6 +150,14 @@ rule reads:
 
 rule randgenome:
     output:
-        "data/genomes/random.fa"
+        "data/genomes/{seed}.fa"
+    params:
+        genome_size=100000
+    log:
+        "data/log/genome/{seed}.log"
     shell:
-        "scripts/randfa.py 1000000 {SEED} > {output}"
+        "scripts/randfa.py"
+        "   {params.genome_size}"
+        "   {wildcards.seed}"
+        " > {output}"
+        " 2> {log}"

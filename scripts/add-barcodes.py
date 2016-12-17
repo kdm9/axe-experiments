@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import print_function
-import screed
+from collections import Counter
+import json
+import sys
+from sys import stderr, stdout
+
 import docopt
 import numpy as np
-from sys import stderr, stdout
-import sys
-import json
+import screed
+
 
 try:
     from itertools import zip
@@ -23,6 +26,7 @@ OPTIONS:
     -r RE_SITE      Restriction enzyme site (inserted between barcode and read)
                     [default: ]
     -o OUTPUT       Output file [default: stdout]
+    -y STATS        Output file for statistics
     -G GAMMA_SHAPE  Shape of gamma distribution, source of sample frequencies.
                     [default: 2]
 '''
@@ -117,11 +121,14 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
                                  'barcodes': sample['bcd'],
                                  'mismatches': mismatch})
 
-        return '@{}\t{}\n{}{}{}\n+\n{}{}'.format(
+        seq = '@{}\t{}\n{}{}{}\n+\n{}{}'.format(
                 read.name, sample_tag,
                 bcd_seq, re_seq, read.sequence,
                 fake_qual, read.quality
         )
+        return {'seq': seq,
+                'id': sample['id'],
+                'mm': mismatch}
 
     r1, r2 = read_pair
     b1, b2 = sample['bcd']
@@ -129,7 +136,15 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
     if single_only:
         return read_str(r1, b1)
     else:
-        return read_str(r1, b1) + '\n' + read_str(r2, b2)
+        r1 = read_str(r1, b1)
+        r2 = read_str(r2, b2)
+
+        seq = r1['seq'] + '\n' + r2['seq']
+        id = r1['id']
+        mm = (r1['mm'], r2['mm'])
+        return {'seq': seq,
+                'id': id,
+                'mm': mm}
 
 
 def read_interleaved_or_paired(fq1, fq2=None):
@@ -145,7 +160,7 @@ def read_interleaved_or_paired(fq1, fq2=None):
 
 
 def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
-                 re_site='', single_only=False):
+                 re_site='', single_only=False, stats_file=None):
     read_pairs = read_interleaved_or_paired(fq1, fq2)
     samples = read_axe_key(axe_key)
 
@@ -154,6 +169,8 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
     else:
         outfile = open(outfile, 'w')
 
+    ids = Counter()
+
     cumsum_sample_freqs = samplefreq(samples)
 
     print("CLI is: '{}'".format(' '.join(sys.argv)), file=stderr)
@@ -161,11 +178,16 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
         if i % 10000 == 0:
             print('\rProcessed {} reads'.format(i), file=stderr, end='')
             stderr.flush()
-        print(add_barcode_to_read(rp, samples, cumsum_sample_freqs,
-                                  re_site=re_site, single_only=single_only),
-              file=outfile)
+        reads = add_barcode_to_read(rp, samples, cumsum_sample_freqs,
+                                    re_site=re_site, single_only=single_only)
+        print(reads['seq'], file=outfile)
+        ids[reads['id']] += 1
     print('\rProcessed {} reads. Done!'.format(i + 1), file=stderr)
     outfile.close()
+
+    if stats_file is not None:
+        with open(stats_file, 'w') as fh:
+            json.dump(dict(ids.most_common()), fh)
 
 
 if __name__ == '__main__':
@@ -177,4 +199,5 @@ if __name__ == '__main__':
                  outfile=opts['-o'],
                  gamma_shape=float(opts['-G']),
                  re_site=opts['-r'],
-                 single_only=opts['-S'])
+                 single_only=opts['-S'],
+                 stats_file=opts['-y'])
