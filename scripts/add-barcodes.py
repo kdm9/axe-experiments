@@ -9,12 +9,17 @@ import docopt
 import numpy as np
 import screed
 
-
 try:
     from itertools import zip
 except ImportError:
     # Python 3's zip is python2's itertools.zip
     pass
+
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 
 CLI = '''
 USAGE:
@@ -173,7 +178,7 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
 
     cumsum_sample_freqs = samplefreq(samples)
 
-    print("CLI is: '{}'".format(' '.join(sys.argv)), file=stderr)
+    print("CLI is:", sys.argv, file=stderr)
     for i, rp in enumerate(read_pairs):
         if i % 10000 == 0:
             print('\rProcessed {} reads'.format(i), file=stderr, end='')
