@@ -5,7 +5,7 @@ AXE_VERSION=0.3.2
 MASON_VERSION=2.0.5
 SEQAN_VERSION=2.1.1
 FLEXBAR_VERSION=2.7.0
-SNAKEMAKE_VERSION=3.8.2
+SNAKEMAKE_VERSION=3.6.0
 SCREED_VERSION=0.9
 
 ################################################################################
@@ -14,19 +14,32 @@ SCREED_VERSION=0.9
 
 apt-get update
 apt-get -yy upgrade
-apt-get -yy install \
-    build-essential \
-    cmake           \
-    libbz2-dev      \
-    libtbb-dev      \
-    python          \
-    python3-dev     \
-    python3-docopt  \
-    python3-numpy   \
-    python3-pip     \
-    wget            \
-    xz-utils        \
-    zlib1g-dev      \
+apt-get -yy install            \
+    build-essential            \
+    cmake                      \
+    libbz2-dev                 \
+    libhdf5-dev                \
+    libtbb-dev                 \
+    python                     \
+    python3-dev                \
+    python3-docopt             \
+    python3-numpy              \
+    python3-pip                \
+    software-properties-common \
+    wget                       \
+    xz-utils                   \
+    zlib1g-dev                 \
+
+################################################################################
+#                                 Julia stuff                                  #
+################################################################################
+
+add-apt-repository ppa:staticfloat/juliareleases
+apt-get update
+apt-get -yy install julia
+
+julia -e 'for p in ["Bio", "JSON"] Pkg.add(p) end'
+
 
 ################################################################################
 #                               Python Packages                                #
