@@ -38,7 +38,7 @@ add-apt-repository ppa:staticfloat/juliareleases
 apt-get update
 apt-get -yy install julia
 
-julia -e 'for p in ["Bio", "JSON"] Pkg.add(p) end'
+julia -e 'for p in ["Bio", "JSON", "DataStructures"] Pkg.add(p) end'
 
 
 ################################################################################
