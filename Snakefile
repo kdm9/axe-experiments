@@ -5,21 +5,25 @@ random.seed(3301)
 NREPS = 1
 SEEDS = random.sample(range(10000), NREPS)
 # FIXME: Increase this to something more reasonable for any publication version
-NREADS = 1000000
+NREADS = 100000
 KEEP_READS = False
 READLEN = 101 # for benchmarking purposes
 BC_DM = [
-    ('nextera-all-se', 'axe'),
-    ('nextera-all-pe', 'axe'),
-    ('nextera-all-se', 'flexbar'),
     ('4bp-se', 'axe'),
     ('4bp-se', 'flexbar'),
+    ('4bp-se', 'fastx'),
     ('4bp-pe', 'axe'),
-    ('nested-se', 'axe'),
-    ('nested-se', 'flexbar'),
-    ('nested-pe', 'axe'),
-    ('gbs-se', 'axe'),
-    ('gbs-se', 'flexbar'),
+    ('nextera-all-se', 'axe'),
+    ('nextera-all-se', 'flexbar'),
+    ('nextera-all-se', 'fastx'),
+    ('nextera-all-pe', 'axe'),
+#    ('4bp-se', 'axe'),
+#    ('4bp-se', 'flexbar'),
+#    ('nested-se', 'axe'),
+#    ('nested-se', 'flexbar'),
+#    ('nested-pe', 'axe'),
+#    ('gbs-se', 'axe'),
+#    ('gbs-se', 'flexbar'),
 ]
 BARCODE_SETS = list(set([bd[0] for bd in BC_DM]))
 BARCODE_NAMES = {bcd: simhelpers.keyfile_names("keyfiles/{}.axe".format(bcd))
@@ -100,6 +104,32 @@ rule axe:
         ' && popd'
         ") >{log} 2>&1"
 
+rule fastx_dm:
+    input:
+        kf='keyfiles/{barcode}.fastx',
+        reads="data/reads/{seed}_{barcode}.fastq.gz",
+    output:
+        dynamic('data/demuxed.fastx/{seed}_{barcode}/{sample}.fastq')
+    params:
+        outdir=lambda w: 'data/demuxed.fastx/{}_{}/'.format(w.seed, w.barcode),
+        combo=lambda w: '-c' if 'se' in w.barcode else '',
+    log:
+        'data/log/fastx/{seed}_{barcode}.log'
+    benchmark:
+        'data/benchmarks/fastx/{seed}_{barcode}.txt'
+    shell:
+        '(zcat {input.reads} | '
+        '   fastx_barcode_splitter.pl'
+        '   --bol'
+        '   --bcfile {input.kf}'
+        '   --suffix .fastq'
+        '   --prefix {params.outdir} &&'
+        ' pushd {params.outdir} &&'
+        ' mv unmatched.fastq unknown.fastq &&'
+        ' popd'
+        ') >{log} 2>&1'
+
+
 rule flexbar_dm:
     input:
         kf='keyfiles/{barcode}_flexbar.fasta',
@@ -108,7 +138,6 @@ rule flexbar_dm:
         dynamic('data/demuxed.flexbar/{seed}_{barcode}/{sample}.fastq')
     params:
         outdir=lambda w: 'data/demuxed.flexbar/{}_{}/'.format(w.seed, w.barcode),
-        combo=lambda w: '-c' if 'se' in w.barcode else '',
     log:
         'data/log/flexbar/{seed}_{barcode}.log'
     benchmark:

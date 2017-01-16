@@ -5,7 +5,7 @@ AXE_VERSION=0.3.2
 MASON_VERSION=2.0.5
 SEQAN_VERSION=2.1.1
 FLEXBAR_VERSION=2.7.0
-SNAKEMAKE_VERSION=3.6.0
+SNAKEMAKE_VERSION=3.9.1
 SCREED_VERSION=0.9
 
 ################################################################################
@@ -17,6 +17,7 @@ apt-get -yy upgrade
 apt-get -yy install            \
     build-essential            \
     cmake                      \
+    fastx-toolkit              \
     libbz2-dev                 \
     libhdf5-dev                \
     libtbb-dev                 \
