@@ -10,6 +10,10 @@ function readfile_sampleids(filename::String)
         rec = FASTQSeqRecord{DNASequence}()
         while !eof(reader)
             read!(reader, rec)
+            if endswith(rec.name, "/2")
+                # Skip R2, otherwise counts are inflated
+                continue
+            end
             rdata = JSON.parse(rec.metadata.description)
             sample = rdata["id"]
             push!(ctr, sample)
@@ -18,28 +22,32 @@ function readfile_sampleids(filename::String)
     return ctr
 end
 
-immutable Assessment
+type Assessment
     total::Int
     correct::Int
     incorrect::Int
     unassigned::Int
     Assessment() = new(0,0,0,0)
+    Assessment(t, c, i, u) = new(t, c, i, u)
 end
 
-function assess_samples(truthfile, unknown_file, filenames)
-    truecounts = JSON.parsefile(truthfile)
-    unknown_samples = readfile_sampleids(unknown_file)
+function assess_samples(truthfile, sampledir)
+    # Read true counts
+    samplecounts = JSON.parsefile(truthfile)
+
+    # Find unknown file and read it
+    unknowncounts = readfile_sampleids(joinpath(sampledir, "unknown.fastq"))
+
     sample_stats = Dict{String, Assessment}()
-    for fname in filenames
-        sample, _ = splitext(basename(fname))
+    for sample in keys(samplecounts)
+        fname = joinpath(sampledir, "$(sample).fastq")
         got = readfile_sampleids(fname)
-        nread_expect = truecounts[sample]
-        nread_got_total = sum(values(got))
+        nread_expect = samplecounts[sample]
         nread_got_sample = got[sample]
-        nread_unassigned = unknown_samples[sample]
+        nread_unassigned = unknowncounts[sample]
         # Wrong is those not unassigned, and not in correct file. Must be
         # elsewhere
-        nread_got_wrong = nread_expect - nread_unassigned 
+        nread_got_wrong = nread_expect - nread_unassigned -  nread_got_sample
         a = Assessment(nread_expect, nread_got_sample, nread_got_wrong,
                        nread_unassigned)
         sample_stats[sample] = a
@@ -61,10 +69,10 @@ function summarise_assessment(assessment)
     end
     return total
 end
-    
+
 function dump_assessment(file, assess)
     open(file, "w") do f
-        prinln(f, "Sample\tTotal\tCorrect\tIncorrect\tUnassigned")
+        println(f, "Sample\tTotal\tCorrect\tIncorrect\tUnassigned")
         for (s, a) in assess
             println(f, "$s\t$(a.total)\t$(a.correct)\t$(a.incorrect)\t$(a.unassigned)")
         end
@@ -81,11 +89,10 @@ const afile = ARGS[1]
 const seed = ARGS[2]
 const barcode_set = ARGS[3]
 const demuxer = ARGS[4]
-const truename = ARGS[5]
-const unknown = ARGS[6]
-const filenames = ARGS[7:end]
+const truthfile = ARGS[5]
+const sampledir = ARGS[6]
 
-const assessment = assess_samples(truename, unknown, filenames)
+const assessment = assess_samples(truthfile, sampledir)
 dump_assessment(afile, assessment)
 
 const tot = summarise_assessment(assessment)

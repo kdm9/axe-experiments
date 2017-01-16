@@ -192,7 +192,9 @@ def add_barcodes(fq1, fq2, axe_key, outfile='stdout', gamma_shape=2,
 
     if stats_file is not None:
         with open(stats_file, 'w') as fh:
-            json.dump(dict(ids.most_common()), fh)
+            # Ensure samples with no reads are included
+            stats = {s['id']: ids[s['id']] for s in samples}
+            json.dump(stats, fh)
 
 
 if __name__ == '__main__':
