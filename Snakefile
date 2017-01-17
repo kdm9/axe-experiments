@@ -9,21 +9,20 @@ NREADS = 100000
 KEEP_READS = False
 READLEN = 101 # for benchmarking purposes
 BC_DM = [
-    ('4bp-se', 'axe'),
-    ('4bp-se', 'flexbar'),
-    ('4bp-se', 'fastx'),
-    ('4bp-pe', 'axe'),
+    ('8bp-se', 'axe'),
+    ('8bp-se', 'flexbar'),
+    ('8bp-se', 'fastx'),
     ('nextera-all-se', 'axe'),
     ('nextera-all-se', 'flexbar'),
     ('nextera-all-se', 'fastx'),
     ('nextera-all-pe', 'axe'),
-#    ('4bp-se', 'axe'),
-#    ('4bp-se', 'flexbar'),
-#    ('nested-se', 'axe'),
-#    ('nested-se', 'flexbar'),
+    ('bvzlab-pst1-gbs-pe', 'axe'),
+    ('gbs-se', 'axe'),
+    ('gbs-se', 'flexbar'),
+    ('gbs-se', 'fastx'),
+    ('nested-se', 'axe'),
+    ('nested-se', 'fastx'),
 #    ('nested-pe', 'axe'),
-#    ('gbs-se', 'axe'),
-#    ('gbs-se', 'flexbar'),
 ]
 BARCODE_SETS = list(set([bd[0] for bd in BC_DM]))
 BARCODE_NAMES = {bcd: simhelpers.keyfile_names("keyfiles/{}.axe".format(bcd))
