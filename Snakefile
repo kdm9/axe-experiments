@@ -10,6 +10,7 @@ KEEP_READS = False
 READLEN = 101 # for benchmarking purposes
 BC_DM = [
     ('8bp-se', 'axe'),
+    ('8bp-pe', 'axe'),
     ('8bp-se', 'flexbar'),
     ('8bp-se', 'fastx'),
     ('nextera-all-se', 'axe'),
@@ -19,9 +20,9 @@ BC_DM = [
     ('bvzlab-pst1-gbs-pe', 'axe'),
     ('gbs-se', 'axe'),
     ('gbs-se', 'flexbar'),
-    ('gbs-se', 'fastx'),
     ('nested-se', 'axe'),
-    ('nested-se', 'fastx'),
+#    ('gbs-se', 'fastx'),
+#    ('nested-se', 'fastx'),
 #    ('nested-pe', 'axe'),
 ]
 BARCODE_SETS = list(set([bd[0] for bd in BC_DM]))
