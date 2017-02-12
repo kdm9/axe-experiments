@@ -2,6 +2,7 @@
 set -xe
 
 AXE_VERSION=0.3.2
+AR_VERSION=2.2.0
 MASON_VERSION=2.0.5
 SEQAN_VERSION=2.1.1
 FLEXBAR_VERSION=2.7.0
@@ -105,6 +106,16 @@ cmake .
 make && mv flexbar /usr/local/bin/flexbar
 popd
 rm -rf /usr/local/src/*
+
+################################################################################
+#                                AdapterRemoval                                #
+################################################################################
+
+wget -O - https://github.com/MikkelSchubert/adapterremoval/archive/v${AR_VERSION}.tar.gz \
+    | tar xvz
+cd adapterremoval*
+make
+make install
 
 
 ################################################################################
