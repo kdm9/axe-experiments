@@ -1,33 +1,21 @@
-import simhelpers
+from collections import defaultdict
 import random
 
-random.seed(3301)
-NREPS = 1
-SEEDS = random.sample(range(10000), NREPS)
-# FIXME: Increase this to something more reasonable for any publication version
-NREADS = 100000
-KEEP_READS = False
-READLEN = 101 # for benchmarking purposes
-BC_DM = [
-    ('8bp-se', 'axe'),
-    ('8bp-pe', 'axe'),
-    ('8bp-se', 'flexbar'),
-    ('8bp-se', 'fastx'),
-    ('nextera-all-se', 'axe'),
-    ('nextera-all-se', 'flexbar'),
-    ('nextera-all-se', 'fastx'),
-    ('nextera-all-pe', 'axe'),
-    ('bvzlab-pst1-gbs-pe', 'axe'),
-    ('gbs-se', 'axe'),
-    ('gbs-se', 'flexbar'),
-    ('nested-se', 'axe'),
-#    ('gbs-se', 'fastx'),
-#    ('nested-se', 'fastx'),
-#    ('nested-pe', 'axe'),
-]
-BARCODE_SETS = list(set([bd[0] for bd in BC_DM]))
-BARCODE_NAMES = {bcd: simhelpers.keyfile_names("keyfiles/{}.axe".format(bcd))
-                 for bcd in BARCODE_SETS}
+import simhelpers
+
+configfile: "config.yml"
+
+random.seed(int(config.get('seed', 3301)))
+SEEDS = random.sample(range(10000), config.get('num_reps', 1))
+BARCODE_SETS = list(config['barcode_sets'].keys())
+BARCODE_SAMPLENAMES = {bcd: simhelpers.keyfile_names("keyfiles/{}.axe".format(bcd))
+                       for bcd in BARCODE_SETS}
+DEMUXER_SETS = defaultdict(list)
+BC_DM = []
+for bcset, demuxers in config["barcode_sets"].items():
+    for demuxer in demuxers:
+        BC_DM.append((bcset, demuxer))
+        DEMUXER_SETS[demuxer].append(bcset)
 
 shell.executable("/bin/bash")
 shell.prefix("set -euo pipefail; ")
@@ -35,7 +23,7 @@ shell.prefix("set -euo pipefail; ")
 rule all:
     input:
         expand("data/reads/{seed}_{barcode}.fastq.gz", seed=SEEDS,
-               barcode=BARCODE_SETS) if KEEP_READS else [],
+               barcode=BARCODE_SETS) if config.get('keep_reads', False) else [],
         ["data/assessments/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
             for bc, dm in BC_DM
             for seed in SEEDS],
@@ -130,6 +118,31 @@ rule fastx_dm:
         ') >{log} 2>&1'
 
 
+rule ar_dm:
+    input:
+        kf='keyfiles/{barcode}.adapterremoval',
+        reads="data/reads/{seed}_{barcode}.fastq.gz",
+    output:
+        dynamic('data/demuxed.ar/{seed}_{barcode}/{sample}.fastq')
+    params:
+        outdir=lambda w: 'data/demuxed.ar/{}_{}/'.format(w.seed, w.barcode),
+    log:
+        'data/log/ar/{seed}_{barcode}.log'
+    benchmark:
+        'data/benchmarks/ar/{seed}_{barcode}.txt'
+    shell:
+        '( AdapterRemoval'
+        '   --interleaved'
+        '   --file1 {input.reads}'
+        '   --demultiplex-only'
+        '   --barcode-list {input.kf}'
+        '   --basename {params.outdir}ar &&'
+        " pushd {params.outdir} &&"
+        " mv ar.unidentified.paired.fastq unknown.fastq &&"
+        " rename 's/^ar.([\w]+).paired.fastq$/$1.fastq/' ar*.fastq &&"
+        " popd"
+        ") >{log} 2>&1"
+
 rule flexbar_dm:
     input:
         kf='keyfiles/{barcode}_flexbar.fasta',
@@ -152,7 +165,7 @@ rule flexbar_dm:
         '   -t {params.outdir} &&'
         " pushd {params.outdir} &&"
         " ls -lahF . &&"
-        " rename 's/^.*_barcode_([\w]+.fastq)$/$1/' *.fastq &&"
+        " rename 's/^.*_barcode_([\w]+.fastq)$/\\1/' *.fastq &&"
         " mv unassigned.fastq unknown.fastq &&"
         " popd"
         ") >{log} 2>&1"
@@ -190,10 +203,13 @@ rule reads:
         r2=temp("data/tmp/{seed}-R2.prebcd.fastq"),
     log:
         "data/log/reads/{seed}.log"
+    params:
+        nread=config.get('num_reads', 10000),
+        readlen=config.get('read_length', 10),
     shell:
         "mason_simulator --seed {wildcards.seed}"
-        "   --illumina-read-length {READLEN}"
-        "   -n {NREADS}"
+        "   --illumina-read-length {params.readlen}"
+        "   -n {params.nread}"
         "   -ir {input.gen}"
         "   -o {output.r1}"
         "   -or {output.r2} >{log} 2>&1"
@@ -203,7 +219,7 @@ rule randgenome:
     output:
         "data/genomes/{seed}.fa"
     params:
-        genome_size=100000
+        genome_size=config.get('genome_size', 100000)
     log:
         "data/log/genome/{seed}.log"
     shell:

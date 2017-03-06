@@ -1,0 +1,24 @@
+num_reps: 1
+num_reads: 10000
+keep_reads: False
+read_length: 101
+genome_size: 1000000
+
+barcode_sets:
+  8bp-se:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+  8bp-pe:
+    - axe
+    - ar
+
+# ('nextera-all-se', 'axe'),
+# ('nextera-all-se', 'flexbar'),
+# ('nextera-all-se', 'fastx'),
+# ('nextera-all-pe', 'axe'),
+# ('bvzlab-pst1-gbs-pe', 'axe'),
+# ('gbs-se', 'axe'),
+# ('gbs-se', 'flexbar'),
+# ('nested-se', 'axe'),
