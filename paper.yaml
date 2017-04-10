@@ -1,0 +1,10 @@
+num_reps: 10
+num_reads: 1000000
+keep_reads: False
+read_length: 101
+genome_size: 1000000
+
+# Whitelist of sets to run. Remove to run all sets
+#set_whitelist:
+# - 100-8bp-se
+# - 100-8bp-pe
