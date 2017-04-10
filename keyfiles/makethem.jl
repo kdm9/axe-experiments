@@ -1,22 +1,11 @@
 #!/usr/bin/env julia
+module BarcodeFactory
 
 import Combinatorics
 import Iterators
 using Bio.Seq
-import Bio.Seq: ACGTN
 import DataStructures
-
-# From Bio.jl
-# Calculate the Hamming distance between `seq1` and `seq2`.
-function hamming_distance(seq1, seq2)
-    @assert length(seq1) == length(seq2)
-    n = 0
-    for (x, y) in zip(seq1, seq2)
-        n += x != y
-    end
-    return n
-end
-
+import YAML
 
 immutable Barcode
 	name::String
@@ -26,15 +15,34 @@ immutable Barcode
 	Barcode(n, s) = new(n, s, Nullable{DNASequence}())
 end
 
+abstract Demuxer
+immutable Axe <: Demuxer end
+immutable AdapterRemoval <: Demuxer end
+immutable Fastx <: Demuxer end
+immutable Flexbar <: Demuxer end
 
-function write_axe(io::IO, bcds::Vector{Barcode})
+function Base.write(io::IO, ::Type{Axe}, bcds::Vector{Barcode})
+	for bcd in bcds
+		r2bcd = isnull(bcd.r2barcode) ? "" : "\t$(get(bcd.r2barcode))"
+		println(io, "$(bcd.r1barcode)$r2bcd\t$(bcd.name)")
+	end
+end
+
+function Base.write{T<:Union{AdapterRemoval, Fastx}}(io::IO, ::Type{T},
+                                                     bcds::Vector{Barcode})
 	for bcd in bcds
 		r2bcd = isnull(bcd.r2barcode) ? "" : "\t$(get(bcd.r2barcode))"
 		println(io, "$(bcd.name)\t$(bcd.r1barcode)$r2bcd")
 	end
 end
 
-function all_kmers(k)
+function Base.write(io::IO, ::Type{Flexbar}, bcds::Vector{Barcode})
+	for bcd in bcds
+		println(io, ">$(bcd.name)\n$(bcd.r1barcode)")
+	end
+end
+
+Base.write{T<:Demuxer}(::Type{T}, bcds) = write(STDOUT, T, bcds)
 
 
 """
@@ -47,7 +55,7 @@ function hamming_space(k, dist)
         candidate = DNASequence(DNANucleotide[candidate_nt...])
         acceptable = true
         for j in accepted
-            if hamming_distance(candidate, j) < dist
+            if mismatches(candidate, j) < dist
                 acceptable = false
                 break
             end
@@ -71,24 +79,53 @@ function alphacode(n)
 end
 
 
-function generate_index_set(name::String, idx_length::Int, num_indices::Vector{Int};
-                            combinatorial::Bool=false, distance::Int=3)
+function generate_index_set(num_indices::Vector{Int}, idx_length::Int,
+                            distance::Int=3)
     barcodes = Barcode[]
-    all_indices = hamming_space(idx_length, distance)
-    shuffle!(all_indices)
+    all_index_seqs = hamming_space(idx_length, distance)
+    shuffle!(all_index_seqs)
 
-    n = prod(num_indices)
-    if n > length(all_indices)
-        error("More indicies requested than available with length $idx_length and distance $distance")
+    totaln = prod(num_indices)
+    maxn = maximum(num_indices)
+    if maxn > length(all_index_seqs)
+        error("More indicies requested than available with"*
+              "length $idx_length and distance $distance")
     end
 
-    idx_names = alphacode(n)
+    idx_names = alphacode(totaln)
 
     for (i, index) in enumerate(Iterators.product(map(x -> (1:x), num_indices)...))
-        idx_seqs = collect(map(x -> all_indices[x], index))
+        idx_seqs = collect(map(x -> all_index_seqs[x], index))
         push!(barcodes, Barcode(idx_names[i], idx_seqs...))
     end
     return barcodes
 end
 
-g = generate_index_set("test", 9, Int[96, 12], combinatorial=true, distance=3)
+const DEMUXERS = Dict{String, Type}(
+        "axe" => Axe,
+        "ar" => AdapterRemoval,
+        "flexbar" => Flexbar,
+        "fastx" => Fastx,
+)
+
+function generate_from_yaml(yamlfile::String, root::String)
+    sets = YAML.load_file(yamlfile)
+    for set in sets
+        setname = set["name"]
+        indices = generate_index_set(set["num_indices"], set["length"],
+                                     set["dist"])
+        for demuxer in set["demuxers"]
+            ext = ".$demuxer"
+            if demuxer == "flexbar"
+                ext = "_flexbar.fasta"
+            end
+            open("$root/$setname$ext", "w") do outf
+                write(outf, DEMUXERS[demuxer], indices)
+            end
+        end
+    end
+end
+
+
+end # module BarcodeFactory
+
