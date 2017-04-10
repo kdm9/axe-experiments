@@ -19,8 +19,6 @@ for s in INDEX_SETS:
     for demuxer in s["demuxers"]:
         DEMUXER_SETS[demuxer].append(s["name"])
 
-print(DEMUXER_SETS)
-
 shell.executable("/bin/bash")
 shell.prefix("set -euo pipefail; ")
 
