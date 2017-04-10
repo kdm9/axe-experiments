@@ -13,11 +13,16 @@ with open("keyfiles/index_sets.yaml") as fh:
 
 DEMUXER_SETS = defaultdict(list)
 for s in INDEX_SETS:
+    whitelist = config.get("set_whitelist", None)
+    if whitelist is not None and s["name"] not in whitelist:
+        continue
     for demuxer in s["demuxers"]:
         DEMUXER_SETS[demuxer].append(s["name"])
 
+print(DEMUXER_SETS)
+
 shell.executable("/bin/bash")
-shell.prefix("set -xeuo pipefail; ")
+shell.prefix("set -euo pipefail; ")
 
 rule all:
     input:
@@ -72,6 +77,8 @@ rule assess:
     output:
         afile='data/assessments/{seed}_{barcode}_{demuxer}.tsv',
         summary=temp('data/stats/accuracy/{seed}_{barcode}_{demuxer}.tsv'),
+    log:
+        "data/log/assess/{seed}_{barcode}_{demuxer}.log"
     shell:
         "scripts/assess.jl"
         "   {output.afile}"
@@ -80,7 +87,7 @@ rule assess:
         "   {wildcards.demuxer}"
         "   {input.stats}"
         "   data/demuxed/{wildcards.demuxer}/{wildcards.seed}_{wildcards.barcode}"
-        "> {output.summary}"
+        "> {output.summary} 2>{log}"
 
 
 rule axe:
@@ -245,4 +252,4 @@ rule randgenome:
         "   {params.genome_size}"
         "   {wildcards.seed}"
         " > {output}"
-        " 2> {log}"
+        " 2>{log}"
