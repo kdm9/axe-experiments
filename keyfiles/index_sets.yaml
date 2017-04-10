@@ -15,3 +15,39 @@
   demuxers:
     - axe
     - ar
+
+- name: 10-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [10,]
+  demuxers:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+
+- name: 200-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [200,]
+  demuxers:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+
+- name: 400-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [400,]
+  demuxers:
+    - axe
+    - ar
+
+- name: 800-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [800,]
+  demuxers:
+    - axe
+    - ar
