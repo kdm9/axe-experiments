@@ -8,6 +8,22 @@
     - fastx
     - ar
 
+- name: 100-8bp-pe
+  length: 8
+  dist: 3
+  num_indices: [10, 10]
+  demuxers:
+    - axe
+    - ar
+
+- name: 1000-8bp-pe
+  length: 8
+  dist: 3
+  num_indices: [32, 32]
+  demuxers:
+    - axe
+    - ar
+
 - name: 10000-8bp-pe
   length: 8
   dist: 3
