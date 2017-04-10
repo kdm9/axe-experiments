@@ -1,0 +1,17 @@
+- name: 100-8bp-se
+  length: 8
+  dist: 3
+  num_indices: [100,]
+  demuxers:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+
+- name: 10000-8bp-pe
+  length: 8
+  dist: 3
+  num_indices: [100, 100]
+  demuxers:
+    - axe
+    - ar
