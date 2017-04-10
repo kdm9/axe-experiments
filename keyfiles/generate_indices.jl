@@ -126,6 +126,26 @@ function generate_from_yaml(yamlfile::String, root::String)
     end
 end
 
-
 end # module BarcodeFactory
 
+using ArgParse
+
+function main()
+    ap = ArgParseSettings()
+    @add_arg_table ap begin
+        "settings"
+            help="YAML-encoding settings file"
+            required=true
+            arg_type=String
+        "rootdir"
+            help="Output directory"
+            default="."
+            required=false
+            arg_type=String
+    end
+    args = parse_args(ap)
+
+    BarcodeFactory.generate_from_yaml(args["settings"], args["rootdir"])
+end
+
+main()
