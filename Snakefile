@@ -1,32 +1,30 @@
 from collections import defaultdict
 import random
+import yaml
 
 configfile: "config.yml"
 
 random.seed(int(config.get('seed', 3301)))
 SEEDS = random.sample(range(10000), config.get('num_reps', 1))
 
-BARCODE_SETS = list(config['barcode_sets'].keys())
+with open("keyfiles/index_sets.yaml") as fh:
+    INDEX_SETS = yaml.load(fh)
+
+
 DEMUXER_SETS = defaultdict(list)
-BC_DM = []
-for bcset, demuxers in config["barcode_sets"].items():
-    for demuxer in demuxers:
-        BC_DM.append((bcset, demuxer))
-        DEMUXER_SETS[demuxer].append(bcset)
-DEMUXERS = set(DEMUXER_SETS.keys())
+for s in INDEX_SETS:
+    for demuxer in s["demuxers"]:
+        DEMUXER_SETS[demuxer].append(s["name"])
 
 shell.executable("/bin/bash")
-shell.prefix("set -euo pipefail; ")
+shell.prefix("set -xeuo pipefail; ")
 
 rule all:
     input:
         expand("data/reads/{seed}_{barcode}.fastq.gz", seed=SEEDS,
-               barcode=BARCODE_SETS) if config.get('keep_reads', False) else [],
-        ["data/assessments/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
-            for bc, dm in BC_DM
-            for seed in SEEDS],
+               barcode=[s["name"] for s in INDEX_SETS]) if config.get('keep_reads', False) else [],
         "data/stats/accuracy_summary.tsv",
-        #"data/stats/timing_summary.tsv",
+        "data/stats/timing_summary.tsv",
 
 
 rule clean:
@@ -36,7 +34,8 @@ rule clean:
 rule global_assess:
     input:
         ["data/stats/accuracy/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
-            for bc, dm in BC_DM
+            for dm, bcds in DEMUXER_SETS.items()
+            for bc in bcds
             for seed in SEEDS],
     output:
         acc="data/stats/accuracy_summary.tsv",
@@ -55,7 +54,7 @@ rule global_assess:
             benchmarks = glob.glob('data/benchmarks/*/*.txt')
             for infn in benchmarks:
                 dm = basename(dirname(infn))
-                if dm not in DEMUXERS:
+                if dm not in set(DEMUXER_SETS.keys()):
                     continue
                 sb = basename(infn)
                 sb = sb[:-len(".txt")]
@@ -138,7 +137,7 @@ rule fastx_dm:
 
 rule ar_dm:
     input:
-        kf='keyfiles/{barcode}.adapterremoval',
+        kf='keyfiles/{barcode}.ar',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
         dynamic('data/demuxed/ar/{seed}_{barcode}/{sample}.fastq')
