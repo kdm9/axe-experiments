@@ -1,3 +1,33 @@
+- name: 10-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [10,]
+  demuxers:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+
+- name: 20-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [20,]
+  demuxers:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+
+- name: 50-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [50,]
+  demuxers:
+    - axe
+    - flexbar
+    - fastx
+    - ar
+
 - name: 100-8bp-se
   length: 8
   dist: 3
@@ -6,6 +36,39 @@
     - axe
     - flexbar
     - fastx
+    - ar
+
+
+- name: 200-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [200,]
+  demuxers:
+    - axe
+    - ar
+
+- name: 400-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [400,]
+  demuxers:
+    - axe
+    - ar
+
+- name: 800-9bp-se
+  length: 9
+  dist: 3
+  num_indices: [800,]
+  demuxers:
+    - axe
+    - ar
+
+- name: 10-8bp-pe
+  length: 8
+  dist: 3
+  num_indices: [2, 5]
+  demuxers:
+    - axe
     - ar
 
 - name: 100-8bp-pe
@@ -28,42 +91,6 @@
   length: 8
   dist: 3
   num_indices: [100, 100]
-  demuxers:
-    - axe
-    - ar
-
-- name: 10-9bp-se
-  length: 9
-  dist: 3
-  num_indices: [10,]
-  demuxers:
-    - axe
-    - flexbar
-    - fastx
-    - ar
-
-- name: 200-9bp-se
-  length: 9
-  dist: 3
-  num_indices: [200,]
-  demuxers:
-    - axe
-    - flexbar
-    - fastx
-    - ar
-
-- name: 400-9bp-se
-  length: 9
-  dist: 3
-  num_indices: [400,]
-  demuxers:
-    - axe
-    - ar
-
-- name: 800-9bp-se
-  length: 9
-  dist: 3
-  num_indices: [800,]
   demuxers:
     - axe
     - ar

@@ -113,9 +113,10 @@ const DEMUXERS = Dict{String, Type}(
         "fastx" => Fastx,
 )
 
-function generate_from_yaml(yamlfile::String, root::String)
+function generate_from_yaml(yamlfile::String, root::String; seed::Int=3301)
     sets = YAML.load_file(yamlfile)
     for set in sets
+        srand(seed)
         setname = set["name"]
         indices = generate_index_set(set["num_indices"], set["length"],
                                      set["dist"])
@@ -154,8 +155,8 @@ function main()
     end
     args = parse_args(ap)
 
-    srand(args["seed"])
-    BarcodeFactory.generate_from_yaml(args["settings"], args["rootdir"])
+    BarcodeFactory.generate_from_yaml(args["settings"], args["rootdir"],
+                                      seed=args["seed"])
 end
 
 main()
