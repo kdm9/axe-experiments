@@ -147,9 +147,14 @@ function main()
             default="."
             required=false
             arg_type=String
+        "--seed"
+            help="Random seed"
+            default=3301
+            arg_type=Int
     end
     args = parse_args(ap)
 
+    srand(args["seed"])
     BarcodeFactory.generate_from_yaml(args["settings"], args["rootdir"])
 end
 

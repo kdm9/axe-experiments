@@ -1,4 +1,1 @@
-*
-!index_sets.yaml
-!generate_indices.jl
-!.gitignore
+old/
