@@ -1,21 +1,19 @@
 from collections import defaultdict
 import random
 
-import simhelpers
-
 configfile: "config.yml"
 
 random.seed(int(config.get('seed', 3301)))
 SEEDS = random.sample(range(10000), config.get('num_reps', 1))
+
 BARCODE_SETS = list(config['barcode_sets'].keys())
-BARCODE_SAMPLENAMES = {bcd: simhelpers.keyfile_names("keyfiles/{}.axe".format(bcd))
-                       for bcd in BARCODE_SETS}
 DEMUXER_SETS = defaultdict(list)
 BC_DM = []
 for bcset, demuxers in config["barcode_sets"].items():
     for demuxer in demuxers:
         BC_DM.append((bcset, demuxer))
         DEMUXER_SETS[demuxer].append(bcset)
+DEMUXERS = set(DEMUXER_SETS.keys())
 
 shell.executable("/bin/bash")
 shell.prefix("set -euo pipefail; ")
@@ -27,7 +25,8 @@ rule all:
         ["data/assessments/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
             for bc, dm in BC_DM
             for seed in SEEDS],
-        "data/stats/all.tsv"
+        "data/stats/accuracy_summary.tsv",
+        #"data/stats/timing_summary.tsv",
 
 
 rule clean:
@@ -36,25 +35,44 @@ rule clean:
 
 rule global_assess:
     input:
-        ["data/stats/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
+        ["data/stats/accuracy/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
             for bc, dm in BC_DM
             for seed in SEEDS],
     output:
-        "data/stats/all.tsv"
+        acc="data/stats/accuracy_summary.tsv",
+        time="data/stats/timing_summary.tsv"
     run:
-        with open(output[0], "w") as ofh:
+        import glob
+        from os.path import dirname, basename
+        with open(output.acc, "w") as ofh:
             print("Seed\tDemuxer\tBarcodeSet\tCorrect\tIncorrect\tUnassigned", file=ofh)
             for infn in input:
                 with open(infn) as ifh:
                     ofh.write(ifh.read())
 
+        with open(output.time, "w") as ofh:
+            print("Seed\tDemuxer\tBarcodeSet\tSec", file=ofh)
+            benchmarks = glob.glob('data/benchmarks/*/*.txt')
+            for infn in benchmarks:
+                dm = basename(dirname(infn))
+                if dm not in DEMUXERS:
+                    continue
+                sb = basename(infn)
+                sb = sb[:-len(".txt")]
+                seed, bcd = sb.split("_")
+                with open(infn) as ifh:
+                    next(ifh)  # Skip header
+                    s, tm = next(ifh).strip().split()
+                    print(seed, dm, bcd, s, sep="\t", file=ofh)
+
+
 rule assess:
     input:
         stats="data/bcd_stats/{seed}_{barcode}.json",
-        reads=dynamic('data/demuxed.{demuxer}/{seed}_{barcode}/{sample}.fastq'),
+        reads=dynamic('data/demuxed/{demuxer}/{seed}_{barcode}/{sample}.fastq'),
     output:
         afile='data/assessments/{seed}_{barcode}_{demuxer}.tsv',
-        summary=temp('data/stats/{seed}_{barcode}_{demuxer}.tsv'),
+        summary=temp('data/stats/accuracy/{seed}_{barcode}_{demuxer}.tsv'),
     shell:
         "scripts/assess.jl"
         "   {output.afile}"
@@ -62,7 +80,7 @@ rule assess:
         "   {wildcards.barcode}"
         "   {wildcards.demuxer}"
         "   {input.stats}"
-        "   data/demuxed.{wildcards.demuxer}/{wildcards.seed}_{wildcards.barcode}"
+        "   data/demuxed/{wildcards.demuxer}/{wildcards.seed}_{wildcards.barcode}"
         "> {output.summary}"
 
 
@@ -71,9 +89,9 @@ rule axe:
         kf='keyfiles/{barcode}.axe',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed.axe/{seed}_{barcode}/{sample}.fastq')
+        dynamic('data/demuxed/axe/{seed}_{barcode}/{sample}.fastq')
     params:
-        outdir=lambda w: 'data/demuxed.axe/{}_{}/'.format(w.seed, w.barcode),
+        outdir=lambda w: 'data/demuxed/axe/{}_{}/'.format(w.seed, w.barcode),
         combo=lambda w: '-c' if 'pe' in w.barcode else '',
         inmode=lambda w: '-f' if 'se' in w.barcode else '-i',
         outmode=lambda w: '-F' if 'se' in w.barcode else '-I',
@@ -97,9 +115,9 @@ rule fastx_dm:
         kf='keyfiles/{barcode}.fastx',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed.fastx/{seed}_{barcode}/{sample}.fastq')
+        dynamic('data/demuxed/fastx/{seed}_{barcode}/{sample}.fastq')
     params:
-        outdir=lambda w: 'data/demuxed.fastx/{}_{}/'.format(w.seed, w.barcode),
+        outdir=lambda w: 'data/demuxed/fastx/{}_{}/'.format(w.seed, w.barcode),
         combo=lambda w: '-c' if 'se' in w.barcode else '',
     log:
         'data/log/fastx/{seed}_{barcode}.log'
@@ -123,23 +141,24 @@ rule ar_dm:
         kf='keyfiles/{barcode}.adapterremoval',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed.ar/{seed}_{barcode}/{sample}.fastq')
+        dynamic('data/demuxed/ar/{seed}_{barcode}/{sample}.fastq')
     params:
-        outdir=lambda w: 'data/demuxed.ar/{}_{}/'.format(w.seed, w.barcode),
+        outdir=lambda w: 'data/demuxed/ar/{}_{}/'.format(w.seed, w.barcode),
+        il=lambda w: "--interleaved" if 'se' not in w.barcode else ''
     log:
         'data/log/ar/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/ar/{seed}_{barcode}.txt'
     shell:
         '( AdapterRemoval'
-        '   --interleaved'
+        '   {params.il}'
         '   --file1 {input.reads}'
         '   --demultiplex-only'
         '   --barcode-list {input.kf}'
         '   --basename {params.outdir}ar &&'
         " pushd {params.outdir} &&"
-        " mv ar.unidentified.paired.fastq unknown.fastq &&"
-        " rename 's/^ar.([\w]+).paired.fastq$/$1.fastq/' ar*.fastq &&"
+        " rename 's/^ar.([\w]+)(.paired)?.fastq$/$1.fastq/' ar*.fastq &&"
+        " mv unidentified.fastq unknown.fastq &&"
         " popd"
         ") >{log} 2>&1"
 
@@ -148,9 +167,9 @@ rule flexbar_dm:
         kf='keyfiles/{barcode}_flexbar.fasta',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed.flexbar/{seed}_{barcode}/{sample}.fastq')
+        dynamic('data/demuxed/flexbar/{seed}_{barcode}/{sample}.fastq')
     params:
-        outdir=lambda w: 'data/demuxed.flexbar/{}_{}/'.format(w.seed, w.barcode),
+        outdir=lambda w: 'data/demuxed/flexbar/{}_{}/'.format(w.seed, w.barcode),
     log:
         'data/log/flexbar/{seed}_{barcode}.log'
     benchmark:
