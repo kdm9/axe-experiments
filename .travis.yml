@@ -9,4 +9,4 @@ install:
   - docker build --tag axe-experiments docker
 
 script:
-  - docker run -v $PWD:/experiments -it axe-experiments snakemake
+  - docker run -v $PWD:/experiments -it axe-experiments snakemake -p --configfile config.yml

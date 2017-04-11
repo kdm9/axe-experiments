@@ -2,8 +2,6 @@ from collections import defaultdict
 import random
 import yaml
 
-configfile: "config.yml"
-
 random.seed(int(config.get('seed', 3301)))
 SEEDS = random.sample(range(10000), config.get('num_reps', 1))
 
