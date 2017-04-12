@@ -45,6 +45,8 @@
   num_indices: [200,]
   demuxers:
     - axe
+    - fastx
+    - flexbar
     - ar
 
 - name: 400-9bp-se
@@ -79,7 +81,7 @@
     - axe
     - ar
 
-- name: 1000-8bp-pe
+- name: 1024-8bp-pe
   length: 8
   dist: 3
   num_indices: [32, 32]
@@ -94,3 +96,10 @@
   demuxers:
     - axe
     - ar
+
+- name: 102400-8bp-pe
+  length: 8
+  dist: 3
+  num_indices: [320, 320]
+  demuxers:
+    - axe
