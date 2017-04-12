@@ -97,10 +97,10 @@
     - axe
     - ar
 
-- name: 65536-8bp-pe
+- name: 36864-8bp-pe
   length: 8
   dist: 3
-  num_indices: [256, 256]
+  num_indices: [192, 192]
   demuxers:
     - axe
     - ar
