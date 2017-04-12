@@ -20,12 +20,19 @@ for s in INDEX_SETS:
 shell.executable("/bin/bash")
 shell.prefix("set -euo pipefail; ")
 
+def all_assessments(w):
+    return ["data/stats/accuracy/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
+            for dm, bcds in DEMUXER_SETS.items()
+            for bc in bcds
+            for seed in SEEDS]
+
 rule all:
     input:
         expand("data/reads/{seed}_{barcode}.fastq.gz", seed=SEEDS,
                barcode=[s["name"] for s in INDEX_SETS]) if config.get('keep_reads', False) else [],
         "data/stats/accuracy_summary.tsv",
         "data/stats/timing_summary.tsv",
+       #all_assessments,
 
 
 rule clean:
@@ -34,10 +41,7 @@ rule clean:
 
 rule global_assess:
     input:
-        ["data/stats/accuracy/{seed}_{bc}_{dm}.tsv".format(dm=dm, bc=bc, seed=seed)
-            for dm, bcds in DEMUXER_SETS.items()
-            for bc in bcds
-            for seed in SEEDS],
+        all_assessments,
     output:
         acc="data/stats/accuracy_summary.tsv",
         time="data/stats/timing_summary.tsv"
@@ -62,28 +66,32 @@ rule global_assess:
                 seed, bcd = sb.split("_")
                 with open(infn) as ifh:
                     next(ifh)  # Skip header
-                    s, tm = next(ifh).strip().split()
-                    print(seed, dm, bcd, s, sep="\t", file=ofh)
+                    for line in ifh:
+                        s, tm = line.strip().split()
+                        print(seed, dm, bcd, s, sep="\t", file=ofh)
 
 
 rule assess:
     input:
         stats="data/bcd_stats/{seed}_{barcode}.json",
-        reads=dynamic('data/demuxed/{demuxer}/{seed}_{barcode}/{sample}.fastq'),
+        reads='data/demuxed/{demuxer}/{seed}_{barcode}/reads.tar',
     output:
         afile='data/assessments/{seed}_{barcode}_{demuxer}.tsv',
         summary=temp('data/stats/accuracy/{seed}_{barcode}_{demuxer}.tsv'),
     log:
         "data/log/assess/{seed}_{barcode}_{demuxer}.log"
     shell:
-        "scripts/assess.jl"
+        "tmp=$(mktemp -d -p data/);"
+        "(tar xf {input.reads} -C $tmp --strip-components=4 &&"
+        " scripts/assess.jl"
         "   {output.afile}"
         "   {wildcards.seed}"
         "   {wildcards.barcode}"
         "   {wildcards.demuxer}"
         "   {input.stats}"
-        "   data/demuxed/{wildcards.demuxer}/{wildcards.seed}_{wildcards.barcode}"
-        "> {output.summary} 2>{log}"
+        "   $tmp > {output.summary}"
+        ") >{log} 2>&1;"
+        "rm -rf $tmp"
 
 
 rule axe:
@@ -91,7 +99,7 @@ rule axe:
         kf='keyfiles/{barcode}.axe',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed/axe/{seed}_{barcode}/{sample}.fastq')
+        'data/demuxed/axe/{seed}_{barcode}/reads.tar'
     params:
         outdir=lambda w: 'data/demuxed/axe/{}_{}/'.format(w.seed, w.barcode),
         combo=lambda w: '-c' if 'pe' in w.barcode else '',
@@ -110,6 +118,8 @@ rule axe:
         ' && pushd {params.outdir}'
         " && rename 's/_(il|R1|R2)//' *.fastq"
         ' && popd'
+        " && tar cvf {output} {params.outdir}"
+        " && rm -vf {params.outdir}/*.fastq"
         ") >{log} 2>&1"
 
 rule fastx_dm:
@@ -117,7 +127,7 @@ rule fastx_dm:
         kf='keyfiles/{barcode}.fastx',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed/fastx/{seed}_{barcode}/{sample}.fastq')
+        'data/demuxed/fastx/{seed}_{barcode}/reads.tar'
     params:
         outdir=lambda w: 'data/demuxed/fastx/{}_{}/'.format(w.seed, w.barcode),
         combo=lambda w: '-c' if 'se' in w.barcode else '',
@@ -135,6 +145,8 @@ rule fastx_dm:
         ' pushd {params.outdir} &&'
         ' mv unmatched.fastq unknown.fastq &&'
         ' popd'
+        " && tar cvf {output} {params.outdir}"
+        " && rm -vf {params.outdir}/*.fastq"
         ') >{log} 2>&1'
 
 
@@ -143,7 +155,7 @@ rule ar_dm:
         kf='keyfiles/{barcode}.ar',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed/ar/{seed}_{barcode}/{sample}.fastq')
+        "data/demuxed/ar/{seed}_{barcode}/reads.tar"
     params:
         outdir=lambda w: 'data/demuxed/ar/{}_{}/'.format(w.seed, w.barcode),
         il=lambda w: "--interleaved" if 'se' not in w.barcode else ''
@@ -162,6 +174,8 @@ rule ar_dm:
         " rename 's/^ar.([\w]+)(.paired)?.fastq$/$1.fastq/' ar*.fastq &&"
         " mv unidentified.fastq unknown.fastq &&"
         " popd"
+        " && tar cvf {output} {params.outdir}"
+        " && rm -vf {params.outdir}/*.fastq"
         ") >{log} 2>&1"
 
 rule flexbar_dm:
@@ -169,7 +183,7 @@ rule flexbar_dm:
         kf='keyfiles/{barcode}_flexbar.fasta',
         reads="data/reads/{seed}_{barcode}.fastq.gz",
     output:
-        dynamic('data/demuxed/flexbar/{seed}_{barcode}/{sample}.fastq')
+        "data/demuxed/flexbar/{seed}_{barcode}/reads.tar"
     params:
         outdir=lambda w: 'data/demuxed/flexbar/{}_{}/'.format(w.seed, w.barcode),
     log:
@@ -189,6 +203,8 @@ rule flexbar_dm:
         " rename 's/^.*_barcode_([\w]+.fastq)$/\\1/' *.fastq &&"
         " mv unassigned.fastq unknown.fastq &&"
         " popd"
+        " && tar cvf {output} {params.outdir}"
+        " && rm -vf {params.outdir}/*.fastq"
         ") >{log} 2>&1"
 
 
