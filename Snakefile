@@ -12,7 +12,10 @@ with open("keyfiles/index_sets.yaml") as fh:
 DEMUXER_SETS = defaultdict(list)
 for s in INDEX_SETS:
     whitelist = config.get("set_whitelist", None)
+    blacklist = config.get("set_blacklist", None)
     if whitelist is not None and s["name"] not in whitelist:
+        continue
+    if blacklist is not None and s["name"] in blacklist:
         continue
     for demuxer in s["demuxers"]:
         DEMUXER_SETS[demuxer].append(s["name"])
@@ -109,6 +112,7 @@ rule axe:
         'data/log/axe/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/axe/{seed}_{barcode}.txt'
+    threads: 1
     shell:
         '(axe-demux'
         '   {params.combo}'
@@ -135,6 +139,7 @@ rule fastx_dm:
         'data/log/fastx/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/fastx/{seed}_{barcode}.txt'
+    threads: 1
     shell:
         '(zcat {input.reads} | '
         '   fastx_barcode_splitter.pl'
@@ -163,6 +168,7 @@ rule ar_dm:
         'data/log/ar/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/ar/{seed}_{barcode}.txt'
+    threads: 1
     shell:
         '( AdapterRemoval'
         '   {params.il}'
@@ -190,6 +196,7 @@ rule flexbar_dm:
         'data/log/flexbar/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/flexbar/{seed}_{barcode}.txt'
+    threads: 1
     shell:
         '(flexbar'
         '   -be LEFT'  # 5' barcodes
