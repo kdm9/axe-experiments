@@ -1,3 +1,12 @@
+- name: 100-variable-pe
+  length: 4
+  maxlength: 8
+  dist: 3
+  num_indices: [10, 10]
+  demuxers:
+    - axe
+    - flexbar
+
 - name: 10-9bp-se
   length: 9
   dist: 3

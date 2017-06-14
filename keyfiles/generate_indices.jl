@@ -85,7 +85,7 @@ end
 
 
 function generate_index_set(num_indices::Vector{Int}, idx_length::Int,
-                            distance::Int=3)
+                            distance::Int=3; maxlength::Int=0)
     barcodes = Barcode[]
     all_index_seqs = hamming_space(idx_length, distance)
     shuffle!(all_index_seqs)
@@ -99,6 +99,14 @@ function generate_index_set(num_indices::Vector{Int}, idx_length::Int,
 
     idx_names = alphacode(totaln)
 
+    if maxlength > idx_length
+        for i in 1:length(all_index_seqs)
+            additional = i % (maxlength - idx_length)
+            all_index_seqs[i] *= dna"A"^additional
+        end
+    end
+
+    # For each pair in all R1 & R2 index seqs
     for (i, index) in enumerate(Iterators.product(map(x -> (1:x), num_indices)...))
         idx_seqs = collect(map(x -> all_index_seqs[x], index))
         push!(barcodes, Barcode(idx_names[i], idx_seqs...))
@@ -119,7 +127,7 @@ function generate_from_yaml(yamlfile::String, root::String; seed::Int=3301)
         srand(seed)
         setname = set["name"]
         indices = generate_index_set(set["num_indices"], set["length"],
-                                     set["dist"])
+                                     set["dist"], maxlength=get(set, "maxlength", 0))
         for demuxer in set["demuxers"]
             ext = ".$demuxer"
             if demuxer == "flexbar"
