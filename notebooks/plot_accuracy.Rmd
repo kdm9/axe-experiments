@@ -1,0 +1,179 @@
+
+
+```{r libs}
+library(tidyverse)
+library(ggplot2)
+library(naturalsort)
+library(Cairo)
+```
+
+# Accuracy
+
+
+```{r acc.data}
+acc =  read.delim("../data/stats/accuracy_summary.tsv", stringsAsFactors=F)
+
+acc = acc %>%
+    gather("Correctness", "Reads", -Seed, -Demuxer, -BarcodeSet) %>%
+    separate(BarcodeSet, into=c("nidx", "index.length", "paired"), sep="-", remove=F) %>%
+    mutate(BarcodeSet=naturalfactor(BarcodeSet), nidx=as.numeric(nidx))
+
+acc.summ = acc %>%
+    group_by(Demuxer, BarcodeSet, Correctness, nidx, paired) %>%
+    summarise(reads.mean = mean(Reads),
+              reads.sd = sd(Reads))
+```
+
+## Everything
+
+```{r}
+p = ggplot(acc, aes(x=Demuxer, y=Reads)) +
+    geom_bar(aes(fill=Correctness), stat="identity") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~BarcodeSet, ncol = 3) + #, scales="free_x") +
+    theme_bw()
+
+print(p)
+```
+
+# Single end
+
+```{r}
+p = ggplot(filter(acc, paired=="se"), aes(x=Demuxer, y=Reads)) +
+    geom_bar(aes(fill=Correctness), stat="identity") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~BarcodeSet, ncol = 3) + #, scales="free_x") +
+    theme_bw()
+
+print(p)
+```
+
+# Combinatorial
+
+```{r}
+p = ggplot(filter(acc, paired=="pe"), aes(x=Demuxer, y=Reads)) +
+    geom_bar(aes(fill=Correctness), stat="identity") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~BarcodeSet, ncol = 3) + #, scales="free_x") +
+    theme_bw()
+
+print(p)
+```
+
+
+```{r}
+acc.total = acc %>% group_by(Demuxer, paired, Correctness) %>% summarise(reads=sum(Reads)) %>%
+        left_join(acc %>% group_by(Demuxer, paired) %>% summarise(total_reads=sum(Reads))) %>%
+        mutate(reads.prop = reads/total_reads,
+               reads.pct = reads.prop * 100) %>%
+        select(-total_reads)
+acc.wrong = acc.total %>% filter(Correctness != "Correct")
+```
+
+```{r}
+p = ggplot(acc.wrong, aes(x=Demuxer, y=reads.pct)) +
+    geom_bar(aes(fill=Correctness), stat="identity") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~paired, ncol = 3, scales="free_x") +
+    xlab("Demultiplexer") +
+    ylab("Percent of all reads") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle=45, hjust=1))
+
+svg("accuracy_pct.svg", width=5, height=3)
+print(p)
+dev.off()
+print(p)
+```
+
+
+```{r}
+p = ggplot(acc.total, aes(x=Demuxer, y=reads.prop)) +
+    geom_bar(aes(fill=Correctness), stat="identity") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~paired, ncol = 3, scales="free_x") +
+    theme_bw() +
+    theme(axis.text.x=element_text(angle=45, hjust=1))
+
+svg("accuracy_total.svg", width=4, height=3)
+print(p)
+dev.off()
+print(p)
+
+```
+
+
+# Timing
+
+
+```{r load.timing}
+timing = read.delim("../data/stats//timing_summary.tsv") %>%
+    separate(BarcodeSet, into=c("nidx", "index.length", "paired"), sep="-", remove=F) %>%
+    mutate(BarcodeSet=naturalfactor(BarcodeSet), nidx=as.numeric(nidx)) %>%
+    filter(nidx <=10000)
+
+timing.summ = timing %>%
+    group_by(Demuxer, BarcodeSet, nidx, paired) %>%
+    summarise(time.mean = mean(Sec),
+              time.sd = sd(Sec))
+```
+
+
+```{r}
+p = ggplot(filter(timing.summ, paired=="se"), aes(x=Demuxer, y=time.mean)) +
+    geom_bar(aes(fill=Demuxer), stat="identity") +
+    geom_errorbar(aes(ymin=time.mean-time.sd, ymax=time.mean+time.sd)) +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~BarcodeSet, ncol=3) +
+    theme_bw()
+
+print(p)
+```
+
+
+```{r}
+p = ggplot(filter(timing.summ, paired=="pe"), aes(x=Demuxer, y=time.mean)) +
+    geom_bar(aes(fill=Demuxer), stat="identity") +
+    geom_errorbar(aes(ymin=time.mean-time.sd, ymax=time.mean+time.sd)) +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~BarcodeSet, ncol=3) +
+    theme_bw()
+
+print(p)
+```
+
+
+```{r}
+p = ggplot(timing.summ, aes(x=nidx, y=time.mean)) +
+    geom_line(aes(linetype=Demuxer)) +
+    geom_ribbon(aes(ymin=time.mean-time.sd, ymax=time.mean+time.sd, colour=Demuxer, fill=Demuxer), alpha=0.2) +
+    facet_wrap(~paired, scales = "free")  +
+    ylab("Time (s)") +
+    xlab("Number of Samples") +
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 45, hjust=1))
+
+
+svg("timing.svg", width=5,height=3)
+print(p)
+dev.off()
+print(p)
+```
+
+
+```{r}
+p = ggplot(timing.summ, aes(x=nidx, y=time.mean)) +
+    geom_line(aes(linetype=Demuxer)) +
+    geom_ribbon(aes(ymin=time.mean-time.sd, ymax=time.mean+time.sd, colour=Demuxer, fill=Demuxer), alpha=0.2) +
+    facet_wrap(~paired, scales = "free")  +
+    ylab("Time (s)") +
+    xlab("Number of Samples") +
+    scale_y_log10() +
+    scale_x_log10() +
+    theme_bw()
+
+svg("timing_log.svg", width=5,height=3)
+print(p)
+dev.off()
+print(p)
+```
