@@ -1,7 +1,7 @@
 num_reps: 10
 num_reads: 1000000
 keep_reads: False
-read_length: 10
+read_length: 100
 genome_size: 1000000
 
 

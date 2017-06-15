@@ -2,6 +2,8 @@ from collections import defaultdict
 import random
 import yaml
 
+configfile: "config.yml"
+
 random.seed(int(config.get('seed', 3301)))
 SEEDS = random.sample(range(10000), config.get('num_reps', 1))
 
@@ -19,6 +21,14 @@ for s in INDEX_SETS:
         continue
     for demuxer in s["demuxers"]:
         DEMUXER_SETS[demuxer].append(s["name"])
+
+# Timing reproducibility/accuracy
+# Set to 1 to enable parallelism of demuxers
+# Set to > number of jobs to force serial execution of demuxers
+# Other steps (assessments, preparatory work) will be done in parallel depending
+# on -j. Note that all demuxers actually only use 1 core, regardless of this
+# setting.
+DEMUXER_NTHREADS=240
 
 shell.executable("/bin/bash")
 shell.prefix("set -euo pipefail; ")
@@ -112,7 +122,7 @@ rule axe:
         'data/log/axe/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/axe/{seed}_{barcode}.txt'
-    threads: 1
+    threads: DEMUXER_NTHREADS
     shell:
         '(axe-demux'
         '   {params.combo}'
@@ -139,7 +149,7 @@ rule fastx_dm:
         'data/log/fastx/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/fastx/{seed}_{barcode}.txt'
-    threads: 1
+    threads: DEMUXER_NTHREADS
     shell:
         '(zcat {input.reads} | '
         '   fastx_barcode_splitter.pl'
@@ -168,7 +178,7 @@ rule ar_dm:
         'data/log/ar/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/ar/{seed}_{barcode}.txt'
-    threads: 1
+    threads: DEMUXER_NTHREADS
     shell:
         '( AdapterRemoval'
         '   {params.il}'
@@ -196,7 +206,7 @@ rule flexbar_dm:
         'data/log/flexbar/{seed}_{barcode}.log'
     benchmark:
         'data/benchmarks/flexbar/{seed}_{barcode}.txt'
-    threads: 1
+    threads: DEMUXER_NTHREADS
     shell:
         '(flexbar'
         '   -be LEFT'  # 5' barcodes
