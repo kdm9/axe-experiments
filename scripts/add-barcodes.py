@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from __future__ import print_function
+from __future__ import print_function, division
 from collections import Counter
 import json
 import sys
@@ -99,7 +99,13 @@ def add_barcode_to_read(read_pair, samples, cumsum_prob, max_mismatch=0.5,
     sample = samples[idx]
 
     def read_str(read, barcode):
-        fake_qual = read.quality[:len(barcode) + len(re_site)]
+        addded_length = len(barcode) + len(re_site)
+        # Prevent bugs when len(bcd) > len(read): Expand read length to be
+        # longer than required
+        fake_qual = read.quality * (addded_length//len(read.quality) + 1)
+        # Then shrink back to what's required
+        fake_qual = fake_qual[:addded_length]
+
         if fake_qual:
             avg_qual = sum(ord(x)-33 for x in fake_qual) / float(len(fake_qual))
         else:
