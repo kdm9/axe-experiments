@@ -93,7 +93,7 @@ function generate_index_set(num_indices::Vector{Int}, idx_length::Int,
     totaln = prod(num_indices)
     maxn = maximum(num_indices)
     if maxn > length(all_index_seqs)
-        error("More indicies requested than available with"*
+        error("More indicies requested than available with "*
               "length $idx_length and distance $distance")
     end
 
