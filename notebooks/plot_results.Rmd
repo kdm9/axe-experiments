@@ -3,13 +3,15 @@ library(tidyverse)
 library(ggplot2)
 library(naturalsort)
 library(Cairo)
+analysis_date = "2017-06-16"
 ```
 
 # Accuracy
 
 
 ```{r acc.data}
-acc =  read.delim("../data/stats/accuracy_summary.tsv", stringsAsFactors=F)
+acc =  read.delim(paste0("results/", analysis_date, "/accuracy_summary.tsv"),
+                  stringsAsFactors=F)
 
 acc = acc %>%
     gather("Correctness", "Reads", -Seed, -Demuxer, -BarcodeSet) %>%
@@ -137,7 +139,8 @@ print(p)
 
 
 ```{r load.timing}
-timing = read.delim("../data/stats//timing_summary.tsv") %>%
+timing = read.delim(paste0("results/", analysis_date, "/timing_summary.tsv"),
+                    stringsAsFactors=T) %>%
     separate(BarcodeSet, into=c("nidx", "index.length", "paired"), sep="-", remove=F) %>%
     mutate(BarcodeSet=naturalfactor(BarcodeSet), nidx=as.numeric(nidx)) %>%
     filter(nidx <=10000) %>%
