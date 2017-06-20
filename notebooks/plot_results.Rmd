@@ -1,5 +1,3 @@
-
-
 ```{r libs}
 library(tidyverse)
 library(ggplot2)
@@ -30,53 +28,85 @@ acc.summ = acc %>%
 p = ggplot(acc, aes(x=Demuxer, y=Reads)) +
     geom_bar(aes(fill=Correctness), stat="identity") +
     scale_fill_brewer(palette = "Set1") +
-    facet_wrap(~BarcodeSet, ncol = 3) + #, scales="free_x") +
+    facet_wrap(~BarcodeSet, ncol = 4) + #, scales="free_x") +
     theme_bw()
 
 print(p)
 ```
 
-# Single end
+## Single end
 
 ```{r}
-p = ggplot(filter(acc, paired=="se"), aes(x=Demuxer, y=Reads)) +
+p = ggplot(filter(acc, paired=="se", index.length!="variable"), aes(x=Demuxer, y=Reads)) +
     geom_bar(aes(fill=Correctness), stat="identity") +
     scale_fill_brewer(palette = "Set1") +
-    facet_wrap(~BarcodeSet, ncol = 3) + #, scales="free_x") +
+    facet_wrap(~BarcodeSet, ncol = 4) + #, scales="free_x") +
     theme_bw()
 
+svg("accuracy_se.svg", width=5, height=3)
+print(p)
+dev.off()
 print(p)
 ```
 
-# Combinatorial
+## Combinatorial
 
 ```{r}
-p = ggplot(filter(acc, paired=="pe"), aes(x=Demuxer, y=Reads)) +
+p = ggplot(filter(acc, paired=="pe", index.length!="variable"), aes(x=Demuxer, y=Reads)) +
     geom_bar(aes(fill=Correctness), stat="identity") +
     scale_fill_brewer(palette = "Set1") +
-    facet_wrap(~BarcodeSet, ncol = 3) + #, scales="free_x") +
+    facet_wrap(~BarcodeSet, ncol = 4) + #, scales="free_x") +
     theme_bw()
 
+svg("accuracy_combo.svg", width=5, height=3)
+print(p)
+dev.off()
 print(p)
 ```
 
+## Variable-length
 
 ```{r}
-acc.total = acc %>% group_by(Demuxer, paired, Correctness) %>% summarise(reads=sum(Reads)) %>%
-        left_join(acc %>% group_by(Demuxer, paired) %>% summarise(total_reads=sum(Reads))) %>%
-        mutate(reads.prop = reads/total_reads,
-               reads.pct = reads.prop * 100) %>%
-        select(-total_reads)
+p = ggplot(filter(acc, index.length == "variable"), aes(x=Demuxer, y=Reads)) +
+    geom_bar(aes(fill=Correctness), stat="identity") +
+    scale_fill_brewer(palette = "Set1") +
+    facet_wrap(~BarcodeSet, ncol = 4) + #, scales="free_x") +
+    theme_bw()
+
+svg("accuracy_variable.svg", width=5, height=3)
+print(p)
+dev.off()
+print(p)
+```
+
+## Summarised
+
+This one goes in the paper
+
+```{r}
+acc.plot = filter(acc, index.length == "variable") %>%
+    mutate(plot.group="variable")
+acc.plot = filter(acc, index.length != "variable") %>%
+    mutate(plot.group=paired) %>%
+    bind_rows(acc.plot)
+
+acc.total = acc.plot %>%
+    group_by(Demuxer, plot.group, Correctness) %>%
+    summarise(reads=sum(Reads)) %>%
+    left_join(acc.plot %>% group_by(Demuxer, plot.group) %>% summarise(total_reads=sum(Reads))) %>%
+    mutate(reads.prop = reads/total_reads,
+           reads.pct = reads.prop * 100) %>%
+    select(-total_reads)
 acc.wrong = acc.total %>% filter(Correctness != "Correct")
+acc.total
 ```
 
 ```{r}
 p = ggplot(acc.wrong, aes(x=Demuxer, y=reads.pct)) +
     geom_bar(aes(fill=Correctness), stat="identity") +
     scale_fill_brewer(palette = "Set1") +
-    facet_wrap(~paired, ncol = 3, scales="free_x") +
-    xlab("Demultiplexer") +
-    ylab("Percent of all reads") +
+    facet_wrap(~plot.group, ncol = 3, scales="free_x") +
+    labs(y="Percent of all reads (excluding Correct)", y="Demultiplexer") +
     theme_bw() +
     theme(axis.text.x = element_text(angle=45, hjust=1))
 
@@ -88,10 +118,11 @@ print(p)
 
 
 ```{r}
-p = ggplot(acc.total, aes(x=Demuxer, y=reads.prop)) +
+p = ggplot(acc.total, aes(x=Demuxer, y=reads.pct)) +
     geom_bar(aes(fill=Correctness), stat="identity") +
     scale_fill_brewer(palette = "Set1") +
-    facet_wrap(~paired, ncol = 3, scales="free_x") +
+    facet_wrap(~plot.group, ncol = 3, scales="free_x") +
+    labs(y="Percent of all reads", y="Demultiplexer") +
     theme_bw() +
     theme(axis.text.x=element_text(angle=45, hjust=1))
 
@@ -99,7 +130,6 @@ svg("accuracy_total.svg", width=4, height=3)
 print(p)
 dev.off()
 print(p)
-
 ```
 
 
@@ -110,7 +140,8 @@ print(p)
 timing = read.delim("../data/stats//timing_summary.tsv") %>%
     separate(BarcodeSet, into=c("nidx", "index.length", "paired"), sep="-", remove=F) %>%
     mutate(BarcodeSet=naturalfactor(BarcodeSet), nidx=as.numeric(nidx)) %>%
-    filter(nidx <=10000)
+    filter(nidx <=10000) %>%
+    filter(index.length != "variable")
 
 timing.summ = timing %>%
     group_by(Demuxer, BarcodeSet, nidx, paired) %>%
@@ -148,9 +179,9 @@ p = ggplot(timing.summ, aes(x=nidx, y=time.mean)) +
     geom_line(aes(linetype=Demuxer)) +
     geom_ribbon(aes(ymin=time.mean-time.sd, ymax=time.mean+time.sd, colour=Demuxer, fill=Demuxer), alpha=0.2) +
     facet_wrap(~paired, scales = "free")  +
-    ylab("Time (s)") +
+    ylab("Time (s/million reads)") +
     xlab("Number of Samples") +
-    theme_bw() + 
+    theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust=1))
 
 
